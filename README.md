@@ -46,5 +46,3 @@ Once installed, a new icon appears in the top bar. Click it and the ADHDfy menu 
 
 ## About
 handcrafted with love by [АВТОРЕМОНТ](https://github.com/ABTOPEMOHT).
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/K3K21WQ3DD)
