@@ -47,6 +47,478 @@
                 animation: gifManagerRainbow 2s linear infinite;
                 padding-bottom: 2px;
             }
+
+            .adhdfy-toast-container {
+                position: fixed;
+                top: 30px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 2147483647;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                pointer-events: none;
+            }
+            .adhdfy-toast {
+                background: var(--spice-button);
+                color: #000;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 13px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+                opacity: 0;
+                transform: translateY(-20px);
+                transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
+            .adhdfy-toast--visible {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            .adhdfy-toast--error {
+                background: #e22134;
+                color: #fff;
+            }
+
+            .adhdfy-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 99999;
+                backdrop-filter: blur(10px);
+            }
+            .adhdfy-dialog {
+                background: var(--spice-main);
+                padding: 30px;
+                border-radius: 8px;
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+                min-width: 300px;
+                box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+            }
+            .adhdfy-dialog-title {
+                margin: 0;
+                color: var(--spice-text);
+                font-size: 22px;
+                font-weight: bold;
+            }
+            .adhdfy-dialog-desc {
+                margin: 0;
+                color: var(--spice-subtext);
+                font-size: 14px;
+                line-height: 1.5;
+            }
+            .adhdfy-dialog-buttons {
+                display: flex;
+                gap: 15px;
+                justify-content: flex-end;
+                margin-top: 20px;
+            }
+
+            .adhdfy-btn {
+                padding: 6px 10px;
+                border-radius: 4px;
+                border: none;
+                cursor: pointer;
+                font-size: 12px;
+                transition: transform 0.1s ease;
+            }
+            .adhdfy-btn:hover {
+                transform: scale(1.05);
+            }
+            .adhdfy-btn--primary {
+                background: var(--spice-button);
+                color: #000;
+            }
+            .adhdfy-btn--danger {
+                background: #e91e63;
+                color: white;
+            }
+            .adhdfy-btn--ghost {
+                background: transparent;
+                color: var(--spice-text);
+            }
+            .adhdfy-btn--secondary {
+                background: var(--spice-card);
+                color: var(--spice-text);
+            }
+            .adhdfy-btn--effects {
+                background: linear-gradient(90deg, #ff2a2a, #ff7a00, #ffc500, #43ea43, #0b96ff, #5e00ff, #d600ff);
+                color: white;
+                font-weight: bold;
+                text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            }
+            .adhdfy-btn--toggle {
+                min-width: 30px;
+                padding: 2px 5px;
+            }
+            .adhdfy-btn--lg {
+                padding: 12px 24px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            .adhdfy-btn--md {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+
+            .adhdfy-input {
+                padding: 8px;
+                border-radius: 4px;
+                border: 1px solid var(--spice-button-disabled);
+                background: var(--spice-main);
+                color: var(--spice-text);
+            }
+            .adhdfy-number-input {
+                width: 45px;
+                background: var(--spice-main);
+                color: var(--spice-text);
+                border: 1px solid var(--spice-button-disabled);
+                border-radius: 4px;
+                padding: 2px 4px;
+                font-size: 12px;
+            }
+            .adhdfy-qty-input {
+                width: 38px;
+                background: var(--spice-main);
+                color: var(--spice-text);
+                border: 1px solid var(--spice-button-disabled);
+                border-radius: 4px;
+                padding: 2px 2px 2px 4px;
+                font-size: 11px;
+                text-align: center;
+            }
+            .adhdfy-color-input {
+                width: 40%;
+                height: 20px;
+                border: none;
+                padding: 0;
+                background: transparent;
+                cursor: pointer;
+            }
+            .adhdfy-slider-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 5px;
+            }
+            .adhdfy-slider-label {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                width: 55%;
+            }
+            .adhdfy-sliders-container {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+                font-size: 12px;
+                margin-top: 5px;
+            }
+            .adhdfy-speed-container {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                width: 40%;
+            }
+
+            .adhdfy-modal-content {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                color: var(--spice-text);
+            }
+            .adhdfy-preset-form {
+                display: flex;
+                gap: 10px;
+                justify-content: space-between;
+                align-items: center;
+                padding-bottom: 10px;
+                border-bottom: 1px solid var(--spice-button-disabled);
+            }
+            .adhdfy-section-title {
+                margin: 0;
+                font-weight: bold;
+            }
+            .adhdfy-btn-group {
+                display: flex;
+                gap: 10px;
+            }
+            .adhdfy-manage-header-container {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                margin-top: 5px;
+            }
+            .adhdfy-hr {
+                border-color: var(--spice-button-disabled);
+                width: 100%;
+                margin: 0;
+            }
+            .adhdfy-header-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .adhdfy-list-container {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .adhdfy-info-content {
+                color: var(--spice-text);
+                display: none;
+                flex-direction: column;
+                gap: 10px;
+                font-size: 14px;
+            }
+
+            .adhdfy-card {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                padding: 10px;
+                background: var(--spice-card);
+                border-radius: 8px;
+                transition: outline 0.2s ease;
+                outline: 2px solid transparent;
+                outline-offset: -2px;
+            }
+            .adhdfy-card:hover {
+                outline: 2px solid white;
+            }
+            .adhdfy-card-top {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .adhdfy-preview-img {
+                width: 32px;
+                height: 32px;
+                object-fit: cover;
+                border-radius: 4px;
+                background: #000;
+            }
+            .adhdfy-card-preview {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .adhdfy-card-type {
+                font-size: 13px;
+                color: var(--spice-text);
+            }
+            .adhdfy-card-buttons {
+                display: flex;
+                gap: 5px;
+                flex-wrap: wrap;
+            }
+            .adhdfy-effects-container {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+                padding: 6px 0 0 0;
+                font-size: 12px;
+            }
+            .adhdfy-empty-text {
+                color: gray;
+                margin: 0;
+                font-size: 14px;
+            }
+
+            .adhdfy-cropper-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0, 0, 0, 0.85);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                z-index: 99999;
+                backdrop-filter: blur(10px);
+                gap: 20px;
+            }
+            .adhdfy-cropper-title {
+                margin: 0;
+                color: var(--spice-text);
+                text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            }
+            .adhdfy-cropper-preview {
+                background: repeating-conic-gradient(#333 0% 25%, #111 0% 50%) 50% / 20px 20px;
+                border-radius: 8px;
+                padding: 20px;
+                box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+            }
+            .adhdfy-cropper-img-wrapper {
+                position: relative;
+                display: inline-block;
+                line-height: 0;
+                user-select: none;
+            }
+            .adhdfy-cropper-img {
+                max-height: 60vh;
+                max-width: 70vw;
+                display: block;
+            }
+            .adhdfy-cropper-mask {
+                position: absolute;
+                top: 0; left: 0; right: 0; bottom: 0;
+                overflow: hidden;
+                pointer-events: none;
+            }
+            .adhdfy-cropper-shadow {
+                position: absolute;
+                box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);
+            }
+            .adhdfy-cropper-box {
+                position: absolute;
+                border: 2px dashed var(--spice-button);
+                box-sizing: border-box;
+                cursor: grab;
+            }
+            .adhdfy-cropper-handle {
+                position: absolute;
+                width: 14px;
+                height: 14px;
+                background: #fff;
+                border: 2px solid var(--spice-button);
+                border-radius: 50%;
+                box-shadow: 0 0 4px rgba(0,0,0,0.5);
+                z-index: 10;
+            }
+            .adhdfy-cropper-label {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: white;
+                font-size: 16px;
+                font-weight: bold;
+                text-shadow: 0 2px 4px black;
+                pointer-events: none;
+                white-space: nowrap;
+            }
+
+            .adhdfy-form-column {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .adhdfy-form-row {
+                display: flex;
+                gap: 10px;
+            }
+            .adhdfy-form-btn {
+                padding: 8px 15px;
+                border-radius: 4px;
+                border: 1px solid var(--spice-button-disabled);
+                background: var(--spice-card);
+                color: var(--spice-text);
+                font-weight: bold;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            .adhdfy-form-btn--primary {
+                background: var(--spice-button);
+                color: #000;
+            }
+            .adhdfy-add-btn {
+                padding: 10px;
+                border-radius: 8px;
+                background: var(--spice-button);
+                color: #000;
+                font-weight: bold;
+                cursor: pointer;
+                border: none;
+            }
+            .adhdfy-tenor-container {
+                display: none;
+                flex-direction: column;
+                gap: 10px;
+                background: var(--spice-card);
+                padding: 10px;
+                border-radius: 8px;
+                border: 1px solid var(--spice-button-disabled);
+            }
+            .adhdfy-tenor-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 5px;
+                max-height: 250px;
+                overflow-y: auto;
+            }
+            .adhdfy-tenor-load-more {
+                display: none;
+                padding: 8px;
+                text-align: center;
+                background: var(--spice-button);
+                color: #000;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: bold;
+                margin-top: 5px;
+                transition: all 0.2s ease;
+            }
+            .adhdfy-tenor-loading {
+                display: none;
+                text-align: center;
+                color: var(--spice-subtext);
+                font-size: 12px;
+                padding: 5px;
+            }
+            .adhdfy-tenor-img {
+                width: 100%;
+                height: 80px;
+                object-fit: cover;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: transform 0.2s ease;
+            }
+            .adhdfy-tenor-img:hover {
+                transform: scale(1.05);
+            }
+            .adhdfy-tenor-no-results {
+                grid-column: 1 / -1;
+                text-align: center;
+                color: var(--spice-subtext);
+            }
+            .adhdfy-tenor-error {
+                grid-column: 1 / -1;
+                text-align: center;
+                color: #e22134;
+            }
+
+            .adhdfy-media-wrapper {
+                position: fixed;
+                z-index: 9999;
+                line-height: 0;
+            }
+            .adhdfy-media-wrapper--clone {
+                z-index: 9998;
+                pointer-events: none;
+            }
+            .adhdfy-media-img {
+                display: block;
+                pointer-events: none;
+            }
+            .adhdfy-border-box {
+                position: absolute;
+                pointer-events: none;
+                box-sizing: border-box;
+                transition: outline 0.2s ease, box-shadow 0.2s ease;
+            }
         `;
         document.head.appendChild(style);
     }
@@ -118,44 +590,23 @@
         if (!toastContainer) {
             toastContainer = document.createElement("div");
             toastContainer.id = "gif-manager-toast-container";
-            toastContainer.style.position = "fixed";
-            toastContainer.style.top = "30px";
-            toastContainer.style.left = "50%";
-            toastContainer.style.transform = "translateX(-50%)";
-            toastContainer.style.zIndex = "2147483647";
-            toastContainer.style.display = "flex";
-            toastContainer.style.flexDirection = "column";
-            toastContainer.style.gap = "10px";
-            toastContainer.style.pointerEvents = "none";
-
+            toastContainer.className = "adhdfy-toast-container";
             document.body.appendChild(toastContainer);
         }
 
         const toast = document.createElement("div");
-        toast.style.background = isError ? "#e22134" : "var(--spice-button)";
-        toast.style.color = isError ? "#fff" : "#000";
-        toast.style.padding = "10px 20px";
-        toast.style.borderRadius = "8px";
-        toast.style.fontWeight = "bold";
-        toast.style.fontSize = "13px";
-        toast.style.boxShadow = "0 4px 15px rgba(0,0,0,0.8)";
-        toast.style.opacity = "0";
-        toast.style.transform = "translateY(-20px)";
-        toast.style.transition = "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
+        toast.className = isError ? "adhdfy-toast adhdfy-toast--error" : "adhdfy-toast";
         toast.innerText = message;
-
         toastContainer.appendChild(toast);
 
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                toast.style.opacity = "1";
-                toast.style.transform = "translateY(0)";
+                toast.classList.add("adhdfy-toast--visible");
             });
         });
 
         setTimeout(() => {
-            toast.style.opacity = "0";
-            toast.style.transform = "translateY(-20px)";
+            toast.classList.remove("adhdfy-toast--visible");
             setTimeout(() => {
                 toast.remove();
                 if (toastContainer.children.length === 0) {
@@ -198,18 +649,15 @@
 
         savedGifs.forEach((gifData) => {
             const wrapper = document.createElement("div");
-            wrapper.style.position = "fixed";
-            wrapper.style.zIndex = "9999";
+            wrapper.className = "adhdfy-media-wrapper";
             wrapper.style.opacity = gifData.opacity;
             wrapper.ondragstart = () => false;
             wrapper.dataset.dragging = "false";
             wrapper.style.transform = getTransformString(gifData.flipped, gifData.rotation);
-            wrapper.style.lineHeight = "0";
 
             const img = createMediaElement(gifData.url);
             img.style.width = `${gifData.size}px`;
-            img.style.display = "block";
-            img.style.pointerEvents = "none";
+            img.className = "adhdfy-media-img";
 
             img.onerror = () => {
                 showCustomNotification("Failed to load Media", true);
@@ -224,10 +672,7 @@
             wrapper.appendChild(img);
 
             const borderBox = document.createElement("div");
-            borderBox.style.position = "absolute";
-            borderBox.style.pointerEvents = "none";
-            borderBox.style.transition = 'outline 0.2s ease, box-shadow 0.2s ease';
-            borderBox.style.boxSizing = "border-box";
+            borderBox.className = "adhdfy-border-box";
             if (gifData.crop) {
                 borderBox.style.top = `${gifData.crop.t}%`;
                 borderBox.style.left = `${gifData.crop.l}%`;
@@ -318,26 +763,20 @@
                 const clonesCount = Math.max(0, (gifData.rainCount || 15) - 1);
                 for (let i = 0; i < clonesCount; i++) {
                     const cloneWrapper = document.createElement("div");
-                    cloneWrapper.style.position = "fixed";
-                    cloneWrapper.style.zIndex = "9998";
-                    cloneWrapper.style.pointerEvents = "none";
+                    cloneWrapper.className = "adhdfy-media-wrapper adhdfy-media-wrapper--clone";
                     cloneWrapper.style.opacity = gifData.opacity;
                     cloneWrapper.style.transform = getTransformString(gifData.flipped, gifData.rotation);
-                    cloneWrapper.style.lineHeight = "0";
 
                     const cloneImg = createMediaElement(gifData.url);
                     cloneImg.style.width = `${gifData.size}px`;
-                    cloneImg.style.display = "block";
-                    cloneImg.style.pointerEvents = "none";
+                    cloneImg.className = "adhdfy-media-img";
                     if (gifData.crop && (gifData.crop.t > 0 || gifData.crop.r > 0 || gifData.crop.b > 0 || gifData.crop.l > 0)) {
                         cloneImg.style.clipPath = `inset(${gifData.crop.t}% ${gifData.crop.r}% ${gifData.crop.b}% ${gifData.crop.l}%)`;
                     }
                     cloneWrapper.appendChild(cloneImg);
 
                     const cloneBorderBox = document.createElement("div");
-                    cloneBorderBox.style.position = "absolute";
-                    cloneBorderBox.style.pointerEvents = "none";
-                    cloneBorderBox.style.boxSizing = "border-box";
+                    cloneBorderBox.className = "adhdfy-border-box";
                     if (gifData.crop) {
                         cloneBorderBox.style.top = `${gifData.crop.t}%`;
                         cloneBorderBox.style.left = `${gifData.crop.l}%`;
@@ -373,206 +812,206 @@
                     return;
                 }
 
-            if (item.img.dataset.dragging === "true") return;
+                if (item.img.dataset.dragging === "true") return;
 
-            const w = item.img.offsetWidth || item.oldW || item.data.size;
-            const h = item.img.offsetHeight || item.oldH || item.data.size;
+                const w = item.img.offsetWidth || item.oldW || item.data.size;
+                const h = item.img.offsetHeight || item.oldH || item.data.size;
 
-            item.bobY = 0;
-            item.wobbleRot = 0;
+                item.bobY = 0;
+                item.wobbleRot = 0;
 
-            if (item.data.followMouse) {
-                item.currentX = item.currentX !== undefined ? item.currentX : globalMouseX;
-                item.currentY = item.currentY !== undefined ? item.currentY : globalMouseY;
+                if (item.data.followMouse) {
+                    item.currentX = item.currentX !== undefined ? item.currentX : globalMouseX;
+                    item.currentY = item.currentY !== undefined ? item.currentY : globalMouseY;
 
-                const dx = globalMouseX - item.currentX;
-                const dy = globalMouseY - item.currentY;
-                const dist = Math.hypot(dx, dy);
+                    const dx = globalMouseX - item.currentX;
+                    const dy = globalMouseY - item.currentY;
+                    const dist = Math.hypot(dx, dy);
 
-                item.currentX += dx * (1 - Math.pow(0.982, dt));
-                item.currentY += dy * (1 - Math.pow(0.982, dt));
+                    item.currentX += dx * (1 - Math.pow(0.982, dt));
+                    item.currentY += dy * (1 - Math.pow(0.982, dt));
 
-                if (dist > 3) {
-                    let curSpeed = Math.min(0.28, (dist / 40) * 0.28);
-                    if (curSpeed < 0.09) curSpeed = 0.09;
-                    item.stepPhase = (item.stepPhase || 0) + (curSpeed * dt);
+                    if (dist > 3) {
+                        let curSpeed = Math.min(0.28, (dist / 40) * 0.28);
+                        if (curSpeed < 0.09) curSpeed = 0.09;
+                        item.stepPhase = (item.stepPhase || 0) + (curSpeed * dt);
 
-                    item.stepAmp = (item.stepAmp || 0) + 0.15 * dt;
-                    if (item.stepAmp > 1) item.stepAmp = 1;
-                } else {
-                    if (item.stepAmp) {
-                        item.stepAmp *= Math.pow(0.60, dt);
-                        if (item.stepAmp < 0.01) item.stepAmp = 0;
-                        item.stepPhase += 0.05 * dt;
+                        item.stepAmp = (item.stepAmp || 0) + 0.15 * dt;
+                        if (item.stepAmp > 1) item.stepAmp = 1;
+                    } else {
+                        if (item.stepAmp) {
+                            item.stepAmp *= Math.pow(0.60, dt);
+                            if (item.stepAmp < 0.01) item.stepAmp = 0;
+                            item.stepPhase += 0.05 * dt;
+                        }
                     }
-                }
 
-                const amp = item.stepAmp || 0;
-                item.bobY = amp ? -Math.abs(Math.sin(item.stepPhase)) * 8 * amp : 0;
-                item.wobbleRot = amp ? Math.sin(item.stepPhase) * 12 * amp : 0;
+                    const amp = item.stepAmp || 0;
+                    item.bobY = amp ? -Math.abs(Math.sin(item.stepPhase)) * 8 * amp : 0;
+                    item.wobbleRot = amp ? Math.sin(item.stepPhase) * 12 * amp : 0;
 
-                item.img.style.left = `${item.currentX - (w / 2)}px`;
-                item.img.style.top = `${item.currentY - (h / 2)}px`;
-                item.img.style.bottom = 'auto';
-                item.img.style.display = "block";
-            } else if (item.data.dvdBounce) {
-                item.currentX = item.currentX !== undefined ? item.currentX : window.innerWidth / 2;
-                item.currentY = item.currentY !== undefined ? item.currentY : window.innerHeight / 2;
-
-                const speed = (item.data.dvdSpeed || 5) * 0.5;
-                if (item.dvdVx === undefined) {
-                    item.dvdVx = (Math.random() > 0.5 ? speed : -speed);
-                    item.dvdVy = (Math.random() > 0.5 ? speed : -speed);
-                } else {
-                    item.dvdVx = Math.sign(item.dvdVx || 1) * speed;
-                    item.dvdVy = Math.sign(item.dvdVy || 1) * speed;
-                }
-
-                item.currentX += item.dvdVx * dt;
-                item.currentY += item.dvdVy * dt;
-
-                const leftBound = w / 2;
-                const rightBound = window.innerWidth - w / 2;
-                const topBound = h / 2;
-                const bottomBound = window.innerHeight - h / 2;
-
-                if (item.currentX <= leftBound) { item.currentX = leftBound; item.dvdVx = Math.abs(item.dvdVx); }
-                if (item.currentX >= rightBound) { item.currentX = rightBound; item.dvdVx = -Math.abs(item.dvdVx); }
-                if (item.currentY <= topBound) { item.currentY = topBound; item.dvdVy = Math.abs(item.dvdVy); }
-                if (item.currentY >= bottomBound) { item.currentY = bottomBound; item.dvdVy = -Math.abs(item.dvdVy); }
-
-                item.img.style.left = `${item.currentX - w / 2}px`;
-                item.img.style.top = `${item.currentY - h / 2}px`;
-                item.img.style.bottom = 'auto';
-                item.img.style.display = "block";
-            } else if (item.data.rainFall) {
-                if (item.rainY === undefined) {
-                    item.rainX = Math.random() * window.innerWidth;
-                    item.rainY = -(Math.random() * window.innerHeight * 1.5);
-                    item.rainSpeedMult = 0.5 + Math.random();
-                    item.rainRotSpeed = (Math.random() - 0.5) * 5;
-                    item.rainRot = Math.random() * 360;
-                    item.rainScale = 0.4 + Math.random() * 0.8;
-                }
-
-                const speed = (item.data.rainSpeed || 5) * 1.5 * item.rainSpeedMult;
-                item.rainY += speed * dt;
-                item.rainRot += item.rainRotSpeed * dt;
-
-                const hScaled = h * item.rainScale;
-                if (item.rainY > window.innerHeight + hScaled) {
-                    item.rainY = -hScaled - (Math.random() * 200);
-                    item.rainX = Math.random() * window.innerWidth;
-                    item.rainSpeedMult = 0.5 + Math.random();
-                    item.rainScale = 0.4 + Math.random() * 0.8;
-                }
-
-                item.img.style.left = `${item.currentX = item.rainX - (w / 2)}px`;
-                item.img.style.top = `${item.currentY = item.rainY - (h / 2)}px`;
-                item.img.style.bottom = 'auto';
-                item.img.style.display = "block";
-
-                item.currentScaleX = (item.data.flipped ? -1 : 1) * item.rainScale;
-                item.currentSpin = item.rainRot;
-            } else if (item.data.attachedToProgress) {
-                const progBar = document.querySelector('[data-testid="playback-progressbar"]') || document.querySelector('.playback-bar');
-                if (progBar && Spicetify.Player && typeof Spicetify.Player.getDuration === "function" && Spicetify.Player.getDuration() > 0) {
-                    const progRect = progBar.getBoundingClientRect();
-                    const duration = Spicetify.Player.getDuration();
-                    const progress = Spicetify.Player.getProgress();
-
-                    let pct = progress / duration;
-                    if (pct < 0) pct = 0;
-                    if (pct > 1) pct = 1;
-
-                    const centerTargetX = progRect.left + (progRect.width * pct);
-                    const centerTargetY = progRect.top + (progRect.height / 2);
-
-                    item.img.style.left = `${centerTargetX - (w / 2)}px`;
-                    item.img.style.top = `${centerTargetY - (h / 2)}px`;
+                    item.img.style.left = `${item.currentX - (w / 2)}px`;
+                    item.img.style.top = `${item.currentY - (h / 2)}px`;
                     item.img.style.bottom = 'auto';
                     item.img.style.display = "block";
-                } else {
-                    item.img.style.display = "none";
-                }
-            } else {
-                const anchorEl = document.querySelector(item.data.anchor) || document.body;
-                const rect = anchorEl.getBoundingClientRect();
+                } else if (item.data.dvdBounce) {
+                    item.currentX = item.currentX !== undefined ? item.currentX : window.innerWidth / 2;
+                    item.currentY = item.currentY !== undefined ? item.currentY : window.innerHeight / 2;
 
-                if (rect.width === 0) {
-                    item.img.style.display = "none";
-                } else {
+                    const speed = (item.data.dvdSpeed || 5) * 0.5;
+                    if (item.dvdVx === undefined) {
+                        item.dvdVx = (Math.random() > 0.5 ? speed : -speed);
+                        item.dvdVy = (Math.random() > 0.5 ? speed : -speed);
+                    } else {
+                        item.dvdVx = Math.sign(item.dvdVx || 1) * speed;
+                        item.dvdVy = Math.sign(item.dvdVy || 1) * speed;
+                    }
+
+                    item.currentX += item.dvdVx * dt;
+                    item.currentY += item.dvdVy * dt;
+
+                    const leftBound = w / 2;
+                    const rightBound = window.innerWidth - w / 2;
+                    const topBound = h / 2;
+                    const bottomBound = window.innerHeight - h / 2;
+
+                    if (item.currentX <= leftBound) { item.currentX = leftBound; item.dvdVx = Math.abs(item.dvdVx); }
+                    if (item.currentX >= rightBound) { item.currentX = rightBound; item.dvdVx = -Math.abs(item.dvdVx); }
+                    if (item.currentY <= topBound) { item.currentY = topBound; item.dvdVy = Math.abs(item.dvdVy); }
+                    if (item.currentY >= bottomBound) { item.currentY = bottomBound; item.dvdVy = -Math.abs(item.dvdVy); }
+
+                    item.img.style.left = `${item.currentX - w / 2}px`;
+                    item.img.style.top = `${item.currentY - h / 2}px`;
+                    item.img.style.bottom = 'auto';
                     item.img.style.display = "block";
-                    if (item.data.xPct !== undefined) {
-                        const centerTargetX = rect.left + (rect.width * item.data.xPct);
-                        const centerTargetY = rect.top + (rect.height * item.data.yPct);
+                } else if (item.data.rainFall) {
+                    if (item.rainY === undefined) {
+                        item.rainX = Math.random() * window.innerWidth;
+                        item.rainY = -(Math.random() * window.innerHeight * 1.5);
+                        item.rainSpeedMult = 0.5 + Math.random();
+                        item.rainRotSpeed = (Math.random() - 0.5) * 5;
+                        item.rainRot = Math.random() * 360;
+                        item.rainScale = 0.4 + Math.random() * 0.8;
+                    }
+
+                    const speed = (item.data.rainSpeed || 5) * 1.5 * item.rainSpeedMult;
+                    item.rainY += speed * dt;
+                    item.rainRot += item.rainRotSpeed * dt;
+
+                    const hScaled = h * item.rainScale;
+                    if (item.rainY > window.innerHeight + hScaled) {
+                        item.rainY = -hScaled - (Math.random() * 200);
+                        item.rainX = Math.random() * window.innerWidth;
+                        item.rainSpeedMult = 0.5 + Math.random();
+                        item.rainScale = 0.4 + Math.random() * 0.8;
+                    }
+
+                    item.img.style.left = `${item.currentX = item.rainX - (w / 2)}px`;
+                    item.img.style.top = `${item.currentY = item.rainY - (h / 2)}px`;
+                    item.img.style.bottom = 'auto';
+                    item.img.style.display = "block";
+
+                    item.currentScaleX = (item.data.flipped ? -1 : 1) * item.rainScale;
+                    item.currentSpin = item.rainRot;
+                } else if (item.data.attachedToProgress) {
+                    const progBar = document.querySelector('[data-testid="playback-progressbar"]') || document.querySelector('.playback-bar');
+                    if (progBar && Spicetify.Player && typeof Spicetify.Player.getDuration === "function" && Spicetify.Player.getDuration() > 0) {
+                        const progRect = progBar.getBoundingClientRect();
+                        const duration = Spicetify.Player.getDuration();
+                        const progress = Spicetify.Player.getProgress();
+
+                        let pct = progress / duration;
+                        if (pct < 0) pct = 0;
+                        if (pct > 1) pct = 1;
+
+                        const centerTargetX = progRect.left + (progRect.width * pct);
+                        const centerTargetY = progRect.top + (progRect.height / 2);
 
                         item.img.style.left = `${centerTargetX - (w / 2)}px`;
                         item.img.style.top = `${centerTargetY - (h / 2)}px`;
                         item.img.style.bottom = 'auto';
+                        item.img.style.display = "block";
                     } else {
-                        const screenLeft = rect.left + item.data.x;
-                        const screenBottom = (window.innerHeight - rect.bottom) + item.data.y;
-                        item.img.style.left = `${screenLeft}px`;
-                        item.img.style.bottom = `${screenBottom}px`;
-                        item.img.style.top = 'auto';
+                        item.img.style.display = "none";
+                    }
+                } else {
+                    const anchorEl = document.querySelector(item.data.anchor) || document.body;
+                    const rect = anchorEl.getBoundingClientRect();
+
+                    if (rect.width === 0) {
+                        item.img.style.display = "none";
+                    } else {
+                        item.img.style.display = "block";
+                        if (item.data.xPct !== undefined) {
+                            const centerTargetX = rect.left + (rect.width * item.data.xPct);
+                            const centerTargetY = rect.top + (rect.height * item.data.yPct);
+
+                            item.img.style.left = `${centerTargetX - (w / 2)}px`;
+                            item.img.style.top = `${centerTargetY - (h / 2)}px`;
+                            item.img.style.bottom = 'auto';
+                        } else {
+                            const screenLeft = rect.left + item.data.x;
+                            const screenBottom = (window.innerHeight - rect.bottom) + item.data.y;
+                            item.img.style.left = `${screenLeft}px`;
+                            item.img.style.bottom = `${screenBottom}px`;
+                            item.img.style.top = 'auto';
+                        }
                     }
                 }
-            }
 
-            let filterStr = "";
-            let baseHueAngle = 0;
+                let filterStr = "";
+                let baseHueAngle = 0;
 
-            if (item.data.tint) {
-                const hex = item.data.tintColor || "#e91e63";
-                const r = parseInt(hex.substr(1, 2), 16) / 255;
-                const g = parseInt(hex.substr(3, 2), 16) / 255;
-                const b = parseInt(hex.substr(5, 2), 16) / 255;
-                const cmax = Math.max(r, g, b), cmin = Math.min(r, g, b), delta = cmax - cmin;
-                let h = 0;
-                if (delta !== 0) {
-                    if (cmax === r) h = ((g - b) / delta) % 6;
-                    else if (cmax === g) h = (b - r) / delta + 2;
-                    else h = (r - g) / delta + 4;
+                if (item.data.tint) {
+                    const hex = item.data.tintColor || "#e91e63";
+                    const r = parseInt(hex.substr(1, 2), 16) / 255;
+                    const g = parseInt(hex.substr(3, 2), 16) / 255;
+                    const b = parseInt(hex.substr(5, 2), 16) / 255;
+                    const cmax = Math.max(r, g, b), cmin = Math.min(r, g, b), delta = cmax - cmin;
+                    let h = 0;
+                    if (delta !== 0) {
+                        if (cmax === r) h = ((g - b) / delta) % 6;
+                        else if (cmax === g) h = (b - r) / delta + 2;
+                        else h = (r - g) / delta + 4;
+                    }
+                    h = Math.round(h * 60);
+                    if (h < 0) h += 360;
+                    baseHueAngle = h;
+                    filterStr += `grayscale(1) sepia(1) saturate(5) hue-rotate(${h - 40}deg) `;
                 }
-                h = Math.round(h * 60);
-                if (h < 0) h += 360;
-                baseHueAngle = h;
-                filterStr += `grayscale(1) sepia(1) saturate(5) hue-rotate(${h - 40}deg) `;
-            }
 
-            if (item.data.rainbow) {
-                item.currentHueOffset = (item.currentHueOffset || 0) + ((item.data.rainbowSpeed || 5) * 0.2 * dt);
-                filterStr += `hue-rotate(${item.currentHueOffset}deg) `;
-            } else {
-                item.currentHueOffset = 0;
-            }
+                if (item.data.rainbow) {
+                    item.currentHueOffset = (item.currentHueOffset || 0) + ((item.data.rainbowSpeed || 5) * 0.2 * dt);
+                    filterStr += `hue-rotate(${item.currentHueOffset}deg) `;
+                } else {
+                    item.currentHueOffset = 0;
+                }
 
-            if (item.realImg) {
-                item.realImg.style.filter = filterStr;
-            } else {
-                item.img.style.filter = filterStr;
-            }
+                if (item.realImg) {
+                    item.realImg.style.filter = filterStr;
+                } else {
+                    item.img.style.filter = filterStr;
+                }
 
-            if (item.data.spin) {
-                item.currentSpin = (item.currentSpin || 0) + ((item.data.spinSpeed || 5) * 0.3 * dt);
-            } else {
-                item.currentSpin = 0;
-            }
+                if (item.data.spin) {
+                    item.currentSpin = (item.currentSpin || 0) + ((item.data.spinSpeed || 5) * 0.3 * dt);
+                } else {
+                    item.currentSpin = 0;
+                }
 
-            if (item.data.autoFlip) {
-                item.flipPhase = (item.flipPhase || 0) + ((item.data.flipSpeed || 5) * 0.005 * dt);
-                item.currentScaleX = Math.cos(item.flipPhase);
-                if (item.data.flipped) item.currentScaleX *= -1;
-            } else {
-                if (item.currentScaleX === undefined) item.currentScaleX = item.data.flipped ? -1 : 1;
-                const targetScaleX = item.data.flipped ? -1 : 1;
-                item.currentScaleX += (targetScaleX - item.currentScaleX) * (1 - Math.pow(0.85, dt));
-            }
+                if (item.data.autoFlip) {
+                    item.flipPhase = (item.flipPhase || 0) + ((item.data.flipSpeed || 5) * 0.005 * dt);
+                    item.currentScaleX = Math.cos(item.flipPhase);
+                    if (item.data.flipped) item.currentScaleX *= -1;
+                } else {
+                    if (item.currentScaleX === undefined) item.currentScaleX = item.data.flipped ? -1 : 1;
+                    const targetScaleX = item.data.flipped ? -1 : 1;
+                    item.currentScaleX += (targetScaleX - item.currentScaleX) * (1 - Math.pow(0.85, dt));
+                }
 
-            const rot = (item.data.rotation || 0) + (item.currentSpin || 0) + (item.wobbleRot || 0);
-            const bobbing = item.bobY ? `translateY(${item.bobY}px) ` : "";
-            item.img.style.transform = `${bobbing}scaleX(${item.currentScaleX}) rotate(${rot}deg)`;
+                const rot = (item.data.rotation || 0) + (item.currentSpin || 0) + (item.wobbleRot || 0);
+                const bobbing = item.bobY ? `translateY(${item.bobY}px) ` : "";
+                item.img.style.transform = `${bobbing}scaleX(${item.currentScaleX}) rotate(${rot}deg)`;
             } catch (err) {
                 console.error("ADHDfy: trackAnchors render loop error for element", err);
             }
@@ -584,43 +1023,29 @@
     }
     trackAnchors();
 
-    function createStyledButton(text, bgColor, textColor) {
+    function createButton(text, variant = "primary") {
         const btn = document.createElement("button");
         btn.innerText = text;
-        btn.style.padding = "6px 10px";
-        btn.style.borderRadius = "4px";
-        btn.style.background = bgColor;
-        btn.style.color = textColor;
-        btn.style.border = "none";
-        btn.style.cursor = "pointer";
-        btn.style.fontSize = "12px";
+        btn.className = `adhdfy-btn adhdfy-btn--${variant}`;
         return btn;
     }
 
     const modalContent = document.createElement("div");
-    modalContent.style.display = "flex";
-    modalContent.style.flexDirection = "column";
-    modalContent.style.gap = "15px";
-    modalContent.style.color = "var(--spice-text)";
+    modalContent.className = "adhdfy-modal-content";
 
     const presetForm = document.createElement("div");
-    presetForm.style.display = "flex";
-    presetForm.style.gap = "10px";
-    presetForm.style.justifyContent = "space-between";
-    presetForm.style.alignItems = "center";
-    presetForm.style.paddingBottom = "10px";
-    presetForm.style.borderBottom = "1px solid var(--spice-button-disabled)";
+    presetForm.className = "adhdfy-preset-form";
 
     const presetTitle = document.createElement("p");
     presetTitle.innerText = "Layouts:";
-    presetTitle.style.margin = "0";
-    presetTitle.style.fontWeight = "bold";
+    presetTitle.className = "adhdfy-section-title";
 
     const presetButtons = document.createElement("div");
-    presetButtons.style.display = "flex";
-    presetButtons.style.gap = "10px";
+    presetButtons.className = "adhdfy-btn-group";
 
-    const exportBtn = createStyledButton("Save", "var(--spice-button)", "#000");
+
+
+    const exportBtn = createButton("Save", "primary");
     exportBtn.onclick = () => {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(savedGifs, null, 2));
         const dlAnchorElem = document.createElement('a');
@@ -632,7 +1057,7 @@
         showCustomNotification("Layout Exported!");
     };
 
-    const importBtn = createStyledButton("Load", "var(--spice-button)", "#000");
+    const importBtn = createButton("Load", "primary");
     const fileInput = document.createElement("input");
     fileInput.type = "file";
     fileInput.accept = ".json";
@@ -673,52 +1098,46 @@
 
     const addForm = document.createElement("div");
     addForm.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <p style="margin: 0; font-weight: bold;">Add new Image (URL, Local File, or Search):</p>
-            <div style="display: flex; gap: 10px;">
-                <input id="gif-url" type="text" placeholder="Paste direct link (URL)..." style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid var(--spice-button-disabled); background: var(--spice-main); color: var(--spice-text);">
-                <button id="search-gif-btn" style="padding: 8px 15px; border-radius: 4px; border: 1px solid var(--spice-button-disabled); background: var(--spice-card); color: var(--spice-text); font-weight: bold; cursor: pointer; transition: all 0.2s ease;">Search GIFs</button>
-                <button id="browse-file-btn" style="padding: 8px 15px; border-radius: 4px; border: 1px solid var(--spice-button-disabled); background: var(--spice-card); color: var(--spice-text); font-weight: bold; cursor: pointer; transition: all 0.2s ease;">Browse File</button>
+        <div class="adhdfy-form-column">
+            <p class="adhdfy-section-title">Add new Image (URL, Local File, or Search):</p>
+            <div class="adhdfy-form-row">
+                <input id="gif-url" type="text" placeholder="Paste direct link (URL)..." class="adhdfy-input" style="flex: 1;">
+                <button id="search-gif-btn" class="adhdfy-form-btn">Search GIFs</button>
+                <button id="browse-file-btn" class="adhdfy-form-btn">Browse File</button>
             </div>
-            <div id="tenor-search-container" style="display: none; flex-direction: column; gap: 10px; background: var(--spice-card); padding: 10px; border-radius: 8px; border: 1px solid var(--spice-button-disabled);">
-                <div style="display: flex; gap: 5px;">
-                    <input id="tenor-search-input" type="text" placeholder="Type to search GIFs and press Enter..." style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid var(--spice-button-disabled); background: var(--spice-main); color: var(--spice-text); box-sizing: border-box;">
-                    <button id="tenor-execute-btn" style="padding: 8px 15px; border-radius: 4px; border: 1px solid var(--spice-button-disabled); background: var(--spice-button); color: #000; font-weight: bold; cursor: pointer; transition: all 0.2s ease;">Search</button>
+            <div id="tenor-search-container" class="adhdfy-tenor-container">
+                <div class="adhdfy-form-row" style="gap: 5px;">
+                    <input id="tenor-search-input" type="text" placeholder="Type to search GIFs and press Enter..." class="adhdfy-input" style="flex: 1; box-sizing: border-box;">
+                    <button id="tenor-execute-btn" class="adhdfy-form-btn adhdfy-form-btn--primary">Search</button>
                 </div>
-                <div id="tenor-results-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; max-height: 250px; overflow-y: auto;"></div>
-                <div id="tenor-load-more" style="display: none; padding: 8px; text-align: center; background: var(--spice-button); color: #000; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px; transition: all 0.2s ease;">Load More</div>
-                <div id="tenor-loading" style="display: none; text-align: center; color: var(--spice-subtext); font-size: 12px; padding: 5px;">Searching...</div>
+                <div id="tenor-results-grid" class="adhdfy-tenor-grid"></div>
+                <div id="tenor-load-more" class="adhdfy-tenor-load-more">Load More</div>
+                <div id="tenor-loading" class="adhdfy-tenor-loading">Searching...</div>
             </div>
             <input id="file-input-hidden" type="file" accept="image/*" style="display: none;">
-            <div style="display: flex; gap: 10px;">
-                <input id="gif-size" type="number" placeholder="Size (px, default: 50)" style="padding: 8px; border-radius: 4px; width: 100%; border: 1px solid var(--spice-button-disabled); background: var(--spice-main); color: var(--spice-text);">
+            <div class="adhdfy-form-row">
+                <input id="gif-size" type="number" placeholder="Size (px, default: 50)" class="adhdfy-input" style="width: 100%;">
             </div>
-            <button id="add-gif-btn" style="padding: 10px; border-radius: 8px; background: var(--spice-button); color: #000; font-weight: bold; cursor: pointer; border: none;">Add</button>
+            <button id="add-gif-btn" class="adhdfy-add-btn">Add</button>
         </div>
     `;
 
     const manageHeaderContainer = document.createElement("div");
-    manageHeaderContainer.style.display = "flex";
-    manageHeaderContainer.style.flexDirection = "column";
-    manageHeaderContainer.style.gap = "10px";
-    manageHeaderContainer.style.marginTop = "5px";
+    manageHeaderContainer.className = "adhdfy-manage-header-container";
 
     const hr = document.createElement("hr");
-    hr.style.borderColor = "var(--spice-button-disabled)";
-    hr.style.width = "100%";
-    hr.style.margin = "0";
+    hr.className = "adhdfy-hr";
 
     const manageHeader = document.createElement("div");
-    manageHeader.style.display = "flex";
-    manageHeader.style.justifyContent = "space-between";
-    manageHeader.style.alignItems = "center";
+    manageHeader.className = "adhdfy-header-row";
 
     const manageTitle = document.createElement("p");
     manageTitle.innerText = "Manage GIFs:";
-    manageTitle.style.margin = "0";
-    manageTitle.style.fontWeight = "bold";
+    manageTitle.className = "adhdfy-section-title";
 
-    const toggleAllBtn = createStyledButton("Hide All", "var(--spice-button)", "#000");
+
+
+    const toggleAllBtn = createButton("Hide All", "primary");
     toggleAllBtn.onclick = () => {
         const anyVisible = savedGifs.some(g => g.visible);
         savedGifs.forEach(g => g.visible = !anyVisible);
@@ -727,68 +1146,31 @@
         updateListUI();
     };
 
-    const deleteAllBtn = createStyledButton("Delete All", "#e91e63", "white");
+    const deleteAllBtn = createButton("Delete All", "danger");
     deleteAllBtn.onclick = () => {
         const overlay = document.createElement("div");
-        overlay.style.position = "fixed";
-        overlay.style.top = "0";
-        overlay.style.left = "0";
-        overlay.style.width = "100vw";
-        overlay.style.height = "100vh";
-        overlay.style.background = "rgba(0, 0, 0, 0.7)";
-        overlay.style.display = "flex";
-        overlay.style.alignItems = "center";
-        overlay.style.justifyContent = "center";
-        overlay.style.zIndex = "99999";
-        overlay.style.backdropFilter = "blur(10px)";
+        overlay.className = "adhdfy-overlay";
 
         const dialog = document.createElement("div");
-        dialog.style.background = "var(--spice-main)";
-        dialog.style.padding = "30px";
-        dialog.style.borderRadius = "8px";
-        dialog.style.display = "flex";
-        dialog.style.flexDirection = "column";
-        dialog.style.gap = "15px";
-        dialog.style.textAlign = "center";
-        dialog.style.minWidth = "300px";
-        dialog.style.boxShadow = "0 8px 30px rgba(0,0,0,0.6)";
+        dialog.className = "adhdfy-dialog";
 
         const title = document.createElement("h2");
         title.innerText = "Delete All GIFs?";
-        title.style.margin = "0";
-        title.style.color = "var(--spice-text)";
-        title.style.fontSize = "22px";
-        title.style.fontWeight = "bold";
+        title.className = "adhdfy-dialog-title";
 
         const desc = document.createElement("p");
         desc.innerText = "Are you sure you want to delete all GIFs?\nThis action cannot be undone.";
-        desc.style.margin = "0";
-        desc.style.color = "var(--spice-subtext)";
-        desc.style.fontSize = "14px";
-        desc.style.lineHeight = "1.5";
+        desc.className = "adhdfy-dialog-desc";
 
         const btnContainer = document.createElement("div");
-        btnContainer.style.display = "flex";
-        btnContainer.style.gap = "15px";
-        btnContainer.style.justifyContent = "flex-end";
-        btnContainer.style.marginTop = "20px";
+        btnContainer.className = "adhdfy-dialog-buttons";
 
-        const cancelBtn = createStyledButton("Cancel", "transparent", "var(--spice-text)");
-        cancelBtn.style.padding = "12px 24px";
-        cancelBtn.style.fontSize = "14px";
-        cancelBtn.style.fontWeight = "bold";
-        cancelBtn.onmouseover = () => { cancelBtn.style.transform = "scale(1.05)"; };
-        cancelBtn.onmouseout = () => { cancelBtn.style.transform = "scale(1)"; };
-        cancelBtn.style.transition = "transform 0.1s ease";
+        const cancelBtn = createButton("Cancel", "ghost");
+        cancelBtn.classList.add("adhdfy-btn--lg");
         cancelBtn.onclick = () => overlay.remove();
 
-        const confirmBtn = createStyledButton("Delete", "#e91e63", "white");
-        confirmBtn.style.padding = "12px 24px";
-        confirmBtn.style.fontSize = "14px";
-        confirmBtn.style.fontWeight = "bold";
-        confirmBtn.onmouseover = () => { confirmBtn.style.transform = "scale(1.05)"; };
-        confirmBtn.onmouseout = () => { confirmBtn.style.transform = "scale(1)"; };
-        confirmBtn.style.transition = "transform 0.1s ease";
+        const confirmBtn = createButton("Delete", "danger");
+        confirmBtn.classList.add("adhdfy-btn--lg");
         confirmBtn.onclick = () => {
             savedGifs = [];
             Spicetify.LocalStorage.set("MyCustomGifs", JSON.stringify(savedGifs));
@@ -808,8 +1190,7 @@
     };
 
     const headerButtons = document.createElement("div");
-    headerButtons.style.display = "flex";
-    headerButtons.style.gap = "10px";
+    headerButtons.className = "adhdfy-btn-group";
     headerButtons.appendChild(toggleAllBtn);
     headerButtons.appendChild(deleteAllBtn);
 
@@ -820,9 +1201,7 @@
 
     const listContainer = document.createElement("div");
     listContainer.id = "gif-list-container";
-    listContainer.style.display = "flex";
-    listContainer.style.flexDirection = "column";
-    listContainer.style.gap = "10px";
+    listContainer.className = "adhdfy-list-container";
 
     modalContent.appendChild(presetForm);
     modalContent.appendChild(addForm);
@@ -833,11 +1212,7 @@
     mainModalContainer.appendChild(modalContent);
 
     const infoContent = document.createElement("div");
-    infoContent.style.color = "var(--spice-text)";
-    infoContent.style.display = "none";
-    infoContent.style.flexDirection = "column";
-    infoContent.style.gap = "10px";
-    infoContent.style.fontSize = "14px";
+    infoContent.className = "adhdfy-info-content";
 
     infoContent.innerHTML = `
         <p style="margin: 0;">Add your gifs or images by pasting a link, uploading a local file, or searching gifs with Tenor.</p>
@@ -854,73 +1229,38 @@
 
     function openCropperOverlay(gif, onSave) {
         const overlay = document.createElement("div");
-        overlay.style.position = "fixed";
-        overlay.style.top = "0";
-        overlay.style.left = "0";
-        overlay.style.width = "100vw";
-        overlay.style.height = "100vh";
-        overlay.style.background = "rgba(0, 0, 0, 0.85)";
-        overlay.style.display = "flex";
-        overlay.style.flexDirection = "column";
-        overlay.style.alignItems = "center";
-        overlay.style.justifyContent = "center";
-        overlay.style.zIndex = "99999";
-        overlay.style.backdropFilter = "blur(10px)";
-        overlay.style.gap = "20px";
+        overlay.className = "adhdfy-cropper-overlay";
 
         const title = document.createElement("h2");
         title.innerText = "Drag edges and corners to crop";
-        title.style.margin = "0";
-        title.style.color = "var(--spice-text)";
-        title.style.textShadow = "0 2px 4px rgba(0,0,0,0.5)";
+        title.className = "adhdfy-cropper-title";
 
         const previewContainer = document.createElement("div");
-        previewContainer.style.background = "repeating-conic-gradient(#333 0% 25%, #111 0% 50%) 50% / 20px 20px";
-        previewContainer.style.borderRadius = "8px";
-        previewContainer.style.padding = "20px";
-        previewContainer.style.boxShadow = "0 8px 30px rgba(0,0,0,0.6)";
+        previewContainer.className = "adhdfy-cropper-preview";
 
         const imgWrapper = document.createElement("div");
-        imgWrapper.style.position = "relative";
-        imgWrapper.style.display = "inline-block";
-        imgWrapper.style.lineHeight = "0";
-        imgWrapper.style.userSelect = "none";
+        imgWrapper.className = "adhdfy-cropper-img-wrapper";
 
         const previewImg = createMediaElement(gif.url);
-        previewImg.style.maxHeight = "60vh";
-        previewImg.style.maxWidth = "70vw";
-        previewImg.style.display = "block";
+        previewImg.className = "adhdfy-cropper-img";
         previewImg.ondragstart = () => false;
 
         let tempCrop = { ...(gif.crop || { t: 0, r: 0, b: 0, l: 0 }) };
 
         const maskBox = document.createElement("div");
-        maskBox.style.position = "absolute";
-        maskBox.style.top = "0"; maskBox.style.left = "0"; maskBox.style.right = "0"; maskBox.style.bottom = "0";
-        maskBox.style.overflow = "hidden";
-        maskBox.style.pointerEvents = "none";
+        maskBox.className = "adhdfy-cropper-mask";
 
         const shadowHole = document.createElement("div");
-        shadowHole.style.position = "absolute";
-        shadowHole.style.boxShadow = "0 0 0 9999px rgba(0,0,0,0.6)";
+        shadowHole.className = "adhdfy-cropper-shadow";
         maskBox.appendChild(shadowHole);
 
         const cropBox = document.createElement("div");
-        cropBox.style.position = "absolute";
-        cropBox.style.border = "2px dashed var(--spice-button)";
-        cropBox.style.boxSizing = "border-box";
+        cropBox.className = "adhdfy-cropper-box";
 
         function createHandle(cursor, top, right, bottom, left) {
             const h = document.createElement("div");
-            h.style.position = "absolute";
-            h.style.width = "14px";
-            h.style.height = "14px";
-            h.style.background = "#fff";
-            h.style.border = "2px solid var(--spice-button)";
-            h.style.borderRadius = "50%";
-            h.style.boxShadow = "0 0 4px rgba(0,0,0,0.5)";
+            h.className = "adhdfy-cropper-handle";
             h.style.cursor = cursor;
-            h.style.zIndex = "10";
             if (top !== null) h.style.top = top;
             if (right !== null) h.style.right = right;
             if (bottom !== null) h.style.bottom = bottom;
@@ -948,16 +1288,7 @@
         cropBox.appendChild(rightEdge);
 
         const labelText = document.createElement("div");
-        labelText.style.position = "absolute";
-        labelText.style.top = "50%";
-        labelText.style.left = "50%";
-        labelText.style.transform = "translate(-50%, -50%)";
-        labelText.style.color = "white";
-        labelText.style.fontSize = "16px";
-        labelText.style.fontWeight = "bold";
-        labelText.style.textShadow = "0 2px 4px black";
-        labelText.style.pointerEvents = "none";
-        labelText.style.whiteSpace = "nowrap";
+        labelText.className = "adhdfy-cropper-label";
         cropBox.appendChild(labelText);
 
         cropBox.style.cursor = "grab";
@@ -1093,19 +1424,17 @@
         btnContainer.style.display = "flex";
         btnContainer.style.gap = "15px";
 
-        const cancelBtn = createStyledButton("Cancel", "var(--spice-card)", "var(--spice-text)");
-        cancelBtn.style.padding = "10px 20px";
-        cancelBtn.style.fontSize = "14px";
+        const cancelBtn = createButton("Cancel", "secondary");
+        cancelBtn.classList.add("adhdfy-btn--md");
         cancelBtn.onclick = () => {
             window.removeEventListener("mousemove", onMouseMove);
             window.removeEventListener("mouseup", onMouseUp);
             overlay.remove();
         };
 
-        const saveBtn = createStyledButton("Apply Crop", "var(--spice-button)", "#000");
+        const saveBtn = createButton("Apply Crop", "primary");
+        saveBtn.classList.add("adhdfy-btn--md");
         saveBtn.style.fontWeight = "bold";
-        saveBtn.style.padding = "10px 20px";
-        saveBtn.style.fontSize = "14px";
         saveBtn.onclick = () => {
             window.removeEventListener("mousemove", onMouseMove);
             window.removeEventListener("mouseup", onMouseUp);
@@ -1129,7 +1458,7 @@
         listContainer.innerHTML = "";
 
         if (savedGifs.length === 0) {
-            listContainer.innerHTML = "<p style='color: gray; margin: 0; font-size: 14px;'>Empty for now. Add your first GIF above!</p>";
+            listContainer.innerHTML = "<p class='adhdfy-empty-text'>Empty for now. Add your first GIF above!</p>";
             toggleAllBtn.style.display = "none";
             deleteAllBtn.style.display = "none";
             return;
@@ -1142,19 +1471,9 @@
 
         savedGifs.forEach((gif, index) => {
             const item = document.createElement("div");
-            item.style.display = "flex";
-            item.style.flexDirection = "column";
-            item.style.gap = "10px";
-            item.style.padding = "10px";
-            item.style.background = "var(--spice-card)";
-            item.style.borderRadius = "8px";
-
-            item.style.transition = "outline 0.2s ease";
-            item.style.outline = "2px solid transparent";
-            item.style.outlineOffset = "-2px";
+            item.className = "adhdfy-card";
 
             item.onmouseenter = () => {
-                item.style.outline = "2px solid white";
                 renderedElements.filter(el => el.data === gif).forEach(element => {
                     if (element.borderBox) {
                         element.borderBox.dataset.prevOutline = element.borderBox.style.outline;
@@ -1165,7 +1484,6 @@
             };
 
             item.onmouseleave = () => {
-                item.style.outline = "2px solid transparent";
                 renderedElements.filter(el => el.data === gif).forEach(element => {
                     if (element.borderBox) {
                         element.borderBox.style.outline = element.borderBox.dataset.prevOutline || "none";
@@ -1175,40 +1493,29 @@
             };
 
             const topRow = document.createElement("div");
-            topRow.style.display = "flex";
-            topRow.style.alignItems = "center";
-            topRow.style.justifyContent = "space-between";
+            topRow.className = "adhdfy-card-top";
 
             const previewImg = createMediaElement(gif.url);
-            previewImg.style.width = "32px";
-            previewImg.style.height = "32px";
-            previewImg.style.objectFit = "cover";
-            previewImg.style.borderRadius = "4px";
-            previewImg.style.background = "#000";
+            previewImg.className = "adhdfy-preview-img";
             previewImg.style.transform = getTransformString(gif.flipped, gif.rotation);
             if (gif.crop && (gif.crop.t > 0 || gif.crop.r > 0 || gif.crop.b > 0 || gif.crop.l > 0)) {
                 previewImg.style.clipPath = `inset(${gif.crop.t}% ${gif.crop.r}% ${gif.crop.b}% ${gif.crop.l}%)`;
             }
 
             const previewContainer = document.createElement("div");
-            previewContainer.style.display = "flex";
-            previewContainer.style.alignItems = "center";
-            previewContainer.style.gap = "10px";
+            previewContainer.className = "adhdfy-card-preview";
             previewContainer.appendChild(previewImg);
 
             const type = getMediaType(gif.url);
             const textInfo = document.createElement("div");
-            textInfo.style.fontSize = "13px";
-            textInfo.style.color = "var(--spice-text)";
+            textInfo.className = "adhdfy-card-type";
             textInfo.innerText = `${type} #${index + 1}`;
             previewContainer.appendChild(textInfo);
 
             const buttonGroup = document.createElement("div");
-            buttonGroup.style.display = "flex";
-            buttonGroup.style.gap = "5px";
-            buttonGroup.style.flexWrap = "wrap";
+            buttonGroup.className = "adhdfy-card-buttons";
 
-            const visBtn = createStyledButton(gif.visible ? "Hide" : "Show", "var(--spice-button)", "#000");
+            const visBtn = createButton(gif.visible ? "Hide" : "Show", "primary");
             visBtn.onclick = (event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -1218,7 +1525,7 @@
                 updateListUI();
             };
 
-            const cropBtn = createStyledButton("Crop", "var(--spice-button)", "#000");
+            const cropBtn = createButton("Crop", "primary");
             cropBtn.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1231,7 +1538,7 @@
                 }
             };
 
-            const flipBtn = createStyledButton("Flip", "var(--spice-button)", "#000");
+            const flipBtn = createButton("Flip", "primary");
             flipBtn.onclick = (event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -1244,7 +1551,7 @@
                 previewImg.style.transform = getTransformString(gif.flipped, gif.rotation);
             };
 
-            const duplicateBtn = createStyledButton("Duplicate", "var(--spice-button)", "#000");
+            const duplicateBtn = createButton("Duplicate", "primary");
             duplicateBtn.onclick = (event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -1260,7 +1567,7 @@
                 setTimeout(() => { updateListUI(); }, 10);
             };
 
-            const resetBtn = createStyledButton("Reset", "var(--spice-button)", "#000");
+            const resetBtn = createButton("Reset", "primary");
             resetBtn.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1292,7 +1599,7 @@
                 setTimeout(() => { updateListUI(); }, 10);
             };
 
-            const deleteBtn = createStyledButton("Delete", "#e91e63", "white");
+            const deleteBtn = createButton("Delete", "danger");
             deleteBtn.onclick = (event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -1304,9 +1611,7 @@
                 setTimeout(() => { updateListUI(); }, 10);
             };
 
-            const effectsBtn = createStyledButton("Effects", "linear-gradient(90deg, #ff2a2a, #ff7a00, #ffc500, #43ea43, #0b96ff, #5e00ff, #d600ff)", "white");
-            effectsBtn.style.fontWeight = "bold";
-            effectsBtn.style.textShadow = "0 1px 3px rgba(0,0,0,0.8)";
+            const effectsBtn = createButton("Effects", "effects");
 
             buttonGroup.appendChild(effectsBtn);
             buttonGroup.appendChild(visBtn);
@@ -1320,24 +1625,14 @@
             topRow.appendChild(buttonGroup);
 
             const slidersContainer = document.createElement("div");
-            slidersContainer.style.display = "flex";
-            slidersContainer.style.flexDirection = "column";
-            slidersContainer.style.gap = "6px";
-            slidersContainer.style.fontSize = "12px";
-            slidersContainer.style.marginTop = "5px";
+            slidersContainer.className = "adhdfy-sliders-container";
 
             function createSlider(label, min, max, step, value, unit, onChange) {
                 const wrapper = document.createElement("div");
-                wrapper.style.display = "flex";
-                wrapper.style.alignItems = "center";
-                wrapper.style.justifyContent = "space-between";
-                wrapper.style.gap = "5px";
+                wrapper.className = "adhdfy-slider-row";
 
                 const labelContainer = document.createElement("div");
-                labelContainer.style.display = "flex";
-                labelContainer.style.alignItems = "center";
-                labelContainer.style.gap = "5px";
-                labelContainer.style.width = "55%";
+                labelContainer.className = "adhdfy-slider-label";
 
                 const labelText = document.createElement("span");
                 labelText.innerText = `${label}:`;
@@ -1348,13 +1643,7 @@
                 numberInput.max = max;
                 numberInput.step = step;
                 numberInput.value = value;
-                numberInput.style.width = "45px";
-                numberInput.style.background = "var(--spice-main)";
-                numberInput.style.color = "var(--spice-text)";
-                numberInput.style.border = "1px solid var(--spice-button-disabled)";
-                numberInput.style.borderRadius = "4px";
-                numberInput.style.padding = "2px 4px";
-                numberInput.style.fontSize = "12px";
+                numberInput.className = "adhdfy-number-input";
 
                 const unitText = document.createElement("span");
                 unitText.innerText = unit;
@@ -1428,12 +1717,8 @@
             slidersContainer.appendChild(rotationSlider);
 
             const effectsContainer = document.createElement("div");
+            effectsContainer.className = "adhdfy-effects-container";
             effectsContainer.style.display = gif.uiEffectsOpen ? "flex" : "none";
-            effectsContainer.style.flexDirection = "column";
-            effectsContainer.style.gap = "6px";
-            effectsContainer.style.padding = "6px 0 0 0";
-            effectsContainer.style.marginTop = "0px";
-            effectsContainer.style.fontSize = "12px";
             effectsBtn.onclick = (e) => {
                 e.preventDefault();
                 gif.uiEffectsOpen = !gif.uiEffectsOpen;
@@ -1457,9 +1742,12 @@
                 labelText.innerText = `${title}:`;
 
                 let isActive = gif[activeField];
-                const toggleBtn = createStyledButton(isActive ? "ON" : "OFF", isActive ? "var(--spice-button)" : "var(--spice-button-disabled)", isActive ? "#000" : "var(--spice-text)");
-                toggleBtn.style.minWidth = "30px";
-                toggleBtn.style.padding = "2px 5px";
+                const toggleBtn = createButton(isActive ? "ON" : "OFF", "primary");
+                toggleBtn.classList.add("adhdfy-btn--toggle");
+                if (!isActive) {
+                    toggleBtn.style.background = "var(--spice-button-disabled)";
+                    toggleBtn.style.color = "var(--spice-text)";
+                }
 
                 toggleBtn.onclick = (e) => {
                     e.preventDefault();
@@ -1498,14 +1786,7 @@
                     qtyInput.min = "1";
                     qtyInput.max = "150";
                     qtyInput.value = gif[qtyField] || 15;
-                    qtyInput.style.width = "38px";
-                    qtyInput.style.background = "var(--spice-main)";
-                    qtyInput.style.color = "var(--spice-text)";
-                    qtyInput.style.border = "1px solid var(--spice-button-disabled)";
-                    qtyInput.style.borderRadius = "4px";
-                    qtyInput.style.padding = "2px 2px 2px 4px";
-                    qtyInput.style.fontSize = "11px";
-                    qtyInput.style.textAlign = "center";
+                    qtyInput.className = "adhdfy-qty-input";
 
                     qtyInput.onchange = (e) => {
                         gif[qtyField] = parseInt(e.target.value) || 15;
@@ -1521,12 +1802,7 @@
                     const colorInput = document.createElement("input");
                     colorInput.type = "color";
                     colorInput.value = gif.tintColor || "#e91e63";
-                    colorInput.style.width = "40%";
-                    colorInput.style.height = "20px";
-                    colorInput.style.border = "none";
-                    colorInput.style.padding = "0";
-                    colorInput.style.background = "transparent";
-                    colorInput.style.cursor = "pointer";
+                    colorInput.className = "adhdfy-color-input";
 
                     colorInput.oninput = (e) => {
                         gif.tintColor = e.target.value;
@@ -1542,10 +1818,7 @@
                     wrapper.appendChild(colorInput);
                 } else if (speedField) {
                     const rightContainer = document.createElement("div");
-                    rightContainer.style.display = "flex";
-                    rightContainer.style.alignItems = "center";
-                    rightContainer.style.gap = "5px";
-                    rightContainer.style.width = "40%";
+                    rightContainer.className = "adhdfy-speed-container";
 
                     const slider = document.createElement("input");
                     slider.type = "range";
@@ -1571,7 +1844,7 @@
             effectsContainer.appendChild(createEffectToggle("Rainbow", false, "rainbow", "rainbowSpeed"));
             effectsContainer.appendChild(createEffectToggle("Auto-Spin", false, "spin", "spinSpeed"));
             effectsContainer.appendChild(createEffectToggle("3D Flip", false, "autoFlip", "flipSpeed"));
-            
+
             effectsContainer.appendChild(createEffectToggle("DVD Bounce", false, "dvdBounce", "dvdSpeed"));
             effectsContainer.appendChild(createEffectToggle("Follow Mouse", false, "followMouse", null));
             effectsContainer.appendChild(createEffectToggle("Prog Bar", false, "attachedToProgress", null));
@@ -1596,9 +1869,8 @@
             if (modal) {
                 modal.classList.remove("gif-manager-info-active");
                 const titleEl = modal.querySelector("h1");
-                if (titleEl && titleEl.dataset.originalText) {
-                    titleEl.innerText = titleEl.dataset.originalText;
-                    titleEl.classList.add("gif-manager-rainbow-text");
+                if (titleEl && titleEl.dataset.originalHTML) {
+                    titleEl.innerHTML = titleEl.dataset.originalHTML;
                 }
             }
         } else {
@@ -1611,11 +1883,10 @@
                 modal.classList.add("gif-manager-info-active");
                 const titleEl = modal.querySelector("h1");
                 if (titleEl) {
-                    if (!titleEl.dataset.originalText) {
-                        titleEl.dataset.originalText = titleEl.innerText;
+                    if (!titleEl.dataset.originalHTML) {
+                        titleEl.dataset.originalHTML = titleEl.innerHTML;
                     }
-                    titleEl.innerText = "How it works";
-                    titleEl.classList.remove("gif-manager-rainbow-text");
+                    titleEl.innerHTML = "How it works";
                 }
             }
         }
@@ -1650,7 +1921,10 @@
                 const titleEl = header.querySelector("h1");
                 if (titleEl) {
                     titleEl.style.marginRight = "auto";
-                    titleEl.classList.add("gif-manager-rainbow-text");
+                    titleEl.style.display = "flex";
+                    titleEl.style.alignItems = "baseline";
+                    titleEl.style.gap = "0px";
+                    titleEl.innerHTML = '<span class="gif-manager-rainbow-text">ADHDfy</span><span style="font-size: 12px; color: rgba(180, 180, 180, 0.6); font-weight: normal; margin-left: 6px; line-height: 1;">v. 1.0.3</span>';
                 }
 
                 const infoBtn = document.createElement("button");
@@ -1801,10 +2075,10 @@
                         } else {
                             if (tenorLoadMoreBtn) tenorLoadMoreBtn.innerText = "Load More";
                         }
-                        
+
                         if (!data.results || data.results.length === 0) {
                             if (!isLoadMore) {
-                                tenorGrid.innerHTML = "<p style='grid-column: 1 / -1; text-align: center; color: var(--spice-subtext);'>No results found.</p>";
+                                tenorGrid.innerHTML = "<p class='adhdfy-tenor-no-results'>No results found.</p>";
                             }
                             if (tenorLoadMoreBtn) tenorLoadMoreBtn.style.display = "none";
                             return;
@@ -1822,14 +2096,7 @@
                         data.results.forEach(item => {
                             const img = document.createElement("img");
                             img.src = item.media[0].tinygif.url; // Use tinygif for extremely fast UI 
-                            img.style.width = "100%";
-                            img.style.height = "80px";
-                            img.style.objectFit = "cover";
-                            img.style.borderRadius = "4px";
-                            img.style.cursor = "pointer";
-                            img.style.transition = "transform 0.2s ease";
-                            img.onmouseover = () => img.style.transform = "scale(1.05)";
-                            img.onmouseout = () => img.style.transform = "scale(1)";
+                            img.className = "adhdfy-tenor-img";
 
                             img.onclick = () => {
                                 if (gifUrlInputRef) gifUrlInputRef.value = item.media[0].gif.url;
@@ -1860,7 +2127,7 @@
                             if (tenorLoadMoreBtn) tenorLoadMoreBtn.innerText = "Load More";
                         } else {
                             tenorLoading.style.display = "none";
-                            tenorGrid.innerHTML = "<p style='grid-column: 1 / -1; text-align: center; color: #e22134;'>Failed to load GIFs. Check connection.</p>";
+                            tenorGrid.innerHTML = "<p class='adhdfy-tenor-error'>Failed to load GIFs. Check connection.</p>";
                         }
                         console.error("GifManager Tenor API Error:", err);
                     });
@@ -1883,7 +2150,7 @@
 
             searchBtn.onclick = (e) => {
                 e.preventDefault();
-                const isHidden = tenorContainer.style.display === "none";
+                const isHidden = getComputedStyle(tenorContainer).display === "none";
                 tenorContainer.style.display = isHidden ? "flex" : "none";
                 if (isHidden) {
                     searchBtn.style.background = "var(--spice-button)";
@@ -1917,78 +2184,78 @@
                 const sizeInput = addForm.querySelector("#gif-size");
                 const size = sizeInput && sizeInput.value ? sizeInput.value : 50;
 
-            if (url) {
-                const anchor = "[data-testid='now-playing-widget']";
-                const anchorEl = document.querySelector(anchor);
+                if (url) {
+                    const anchor = "[data-testid='now-playing-widget']";
+                    const anchorEl = document.querySelector(anchor);
 
-                let startXPct = 0.5;
-                let startYPct = 0.5;
+                    let startXPct = 0.5;
+                    let startYPct = 0.5;
 
-                if (anchorEl && anchorEl.getBoundingClientRect().width > 0) {
-                    const rect = anchorEl.getBoundingClientRect();
-                    const screenCenterX = window.innerWidth / 2;
-                    const screenCenterY = window.innerHeight / 2;
+                    if (anchorEl && anchorEl.getBoundingClientRect().width > 0) {
+                        const rect = anchorEl.getBoundingClientRect();
+                        const screenCenterX = window.innerWidth / 2;
+                        const screenCenterY = window.innerHeight / 2;
 
-                    startXPct = (screenCenterX - rect.left) / rect.width;
-                    startYPct = (screenCenterY - rect.top) / rect.height;
+                        startXPct = (screenCenterX - rect.left) / rect.width;
+                        startYPct = (screenCenterY - rect.top) / rect.height;
+                    }
+
+                    savedGifs.unshift({
+                        url,
+                        anchor,
+                        size: parseInt(size),
+                        xPct: startXPct,
+                        yPct: startYPct,
+                        x: 0,
+                        y: 0,
+                        flipped: false,
+                        opacity: 1,
+                        rotation: 0,
+                        visible: true,
+                        tint: false,
+                        tintColor: "#e91e63",
+                        rainbow: false,
+                        rainbowSpeed: 5,
+                        spin: false,
+                        spinSpeed: 5,
+                        autoFlip: false,
+                        flipSpeed: 5,
+                        attachedToProgress: false,
+                        followMouse: false,
+                        dvdBounce: false,
+                        dvdSpeed: 5,
+                        rainFall: false,
+                        rainSpeed: 5,
+                        rainCount: 15,
+                        crop: { t: 0, r: 0, b: 0, l: 0 }
+                    });
+
+                    try {
+                        Spicetify.LocalStorage.set("MyCustomGifs", JSON.stringify(savedGifs));
+                    } catch (err) {
+                        savedGifs.shift();
+                        showCustomNotification("Error: Storage limit exceeded! Could not add local file.", true);
+                        return;
+                    }
+
+                    renderGifs();
+                    updateListUI();
+
+                    document.getElementById("gif-url").value = "";
+                    document.getElementById("gif-size").value = "";
+                    pendingDirectUploadBase64 = null;
+
+                    if (browseBtn) {
+                        browseBtn.style.background = "var(--spice-card)";
+                        browseBtn.style.color = "var(--spice-text)";
+                        browseBtn.style.border = "1px solid var(--spice-button-disabled)";
+                        browseBtn.innerText = "Browse File";
+                    }
+                    if (document.getElementById("file-input-hidden")) {
+                        document.getElementById("file-input-hidden").value = "";
+                    }
                 }
-
-                savedGifs.unshift({
-                    url,
-                    anchor,
-                    size: parseInt(size),
-                    xPct: startXPct,
-                    yPct: startYPct,
-                    x: 0,
-                    y: 0,
-                    flipped: false,
-                    opacity: 1,
-                    rotation: 0,
-                    visible: true,
-                    tint: false,
-                    tintColor: "#e91e63",
-                    rainbow: false,
-                    rainbowSpeed: 5,
-                    spin: false,
-                    spinSpeed: 5,
-                    autoFlip: false,
-                    flipSpeed: 5,
-                    attachedToProgress: false,
-                    followMouse: false,
-                    dvdBounce: false,
-                    dvdSpeed: 5,
-                    rainFall: false,
-                    rainSpeed: 5,
-                    rainCount: 15,
-                    crop: { t: 0, r: 0, b: 0, l: 0 }
-                });
-
-                try {
-                    Spicetify.LocalStorage.set("MyCustomGifs", JSON.stringify(savedGifs));
-                } catch (err) {
-                    savedGifs.shift(); 
-                    showCustomNotification("Error: Storage limit exceeded! Could not add local file.", true);
-                    return;
-                }
-
-                renderGifs();
-                updateListUI();
-
-                document.getElementById("gif-url").value = "";
-                document.getElementById("gif-size").value = "";
-                pendingDirectUploadBase64 = null;
-
-                if (browseBtn) {
-                    browseBtn.style.background = "var(--spice-card)";
-                    browseBtn.style.color = "var(--spice-text)";
-                    browseBtn.style.border = "1px solid var(--spice-button-disabled)";
-                    browseBtn.innerText = "Browse File";
-                }
-                if (document.getElementById("file-input-hidden")) {
-                    document.getElementById("file-input-hidden").value = "";
-                }
-            }
-        };
+            };
         }
     }
 
