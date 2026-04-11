@@ -569,6 +569,7 @@
         crop: { t: 0, r: 0, b: 0, l: 0 }
     };
 
+    // Migrate Legacy LocalStorage
     if (!Spicetify.LocalStorage.get(STORAGE_INDEX_KEY) && Spicetify.LocalStorage.get("adhdfy-layout")) {
         Spicetify.LocalStorage.set("adhdfy-layout-Default", Spicetify.LocalStorage.get("adhdfy-layout"));
         Spicetify.LocalStorage.set(STORAGE_INDEX_KEY, JSON.stringify(["Default"]));
@@ -582,7 +583,7 @@
     let slotIndex = JSON.parse(Spicetify.LocalStorage.get(STORAGE_INDEX_KEY) || '["Default"]');
     let activeSlot = Spicetify.LocalStorage.get(STORAGE_ACTIVE_KEY) || "Default";
 
-    console.log("ADHDfy v1.0.5 loaded");
+    console.log("ADHDfy v1.0.5.1 loaded");
 
     function applyDefaults(gif) {
         const result = { ...GIF_DEFAULTS, ...gif };
@@ -658,6 +659,8 @@
         SHOW_DURATION: 3000,
         FADE_DURATION: 300
     };
+
+    // ── Utility Functions ──
 
     function getMediaType(url) {
         if (!url) return "GIF";
@@ -831,6 +834,7 @@
             };
         };
 
+        // Animated effects override drag — show colored outline instead
         if (gifData.attachedToProgress || gifData.followMouse || gifData.dvdBounce || gifData.rainFall) {
             wrapper.style.pointerEvents = "none";
             borderBox.style.outline = gifData.followMouse ? "2px solid #0b96ff" : (gifData.dvdBounce ? "2px solid #ffc500" : (gifData.rainFall ? "2px solid #a855f7" : "2px solid #1ed760"));
@@ -905,6 +909,8 @@
 
         trackAnchors(performance.now(), true);
     }
+
+    // ── Animation Update Functions ──
 
     function updateFollowMouse(item, w, h, dt) {
         item.currentX = item.currentX !== undefined ? item.currentX : globalMouseX;
@@ -1160,6 +1166,7 @@
                 const positionMs = Spicetify.Player.getProgress();
                 const positionSec = positionMs / 1000;
 
+                // Safety clamp before loops to prevent track switch out-of-bounds errors
                 if (currentBeatIndex >= currentAudioBeats.length) currentBeatIndex = currentAudioBeats.length - 1;
                 if (currentBeatIndex < 0) currentBeatIndex = 0;
 
@@ -1170,6 +1177,7 @@
                     currentBeatIndex--;
                 }
 
+                // Double check clamp after loops
                 if (currentBeatIndex >= currentAudioBeats.length) currentBeatIndex = currentAudioBeats.length - 1;
 
                 const BEAT_LOOKAHEAD = 0.08;
@@ -1275,6 +1283,7 @@
     }
     trackAnchors();
 
+    // ── UI Helpers ──
 
     function createButton(text, variant = "primary") {
         const btn = document.createElement("button");
@@ -1283,6 +1292,7 @@
         return btn;
     }
 
+    // ── Cropper Overlay ──
 
     function openCropperOverlay(gif, onSave) {
         const overlay = document.createElement("div");
@@ -1496,6 +1506,8 @@
 
         updatePreview();
     }
+
+    // ── Modal DOM Factory ──
 
 
     let modalContent, presetForm, addForm, listContainer, mainModalContainer, infoContent;
@@ -1922,6 +1934,8 @@
         mainModalContainer.appendChild(infoContent);
     }
 
+
+    // ── Card UI Factories ──
 
     function createSlider(label, min, max, step, value, unit, onChange) {
         const wrapper = document.createElement("div");
@@ -2363,7 +2377,14 @@
                     titleEl.style.display = "flex";
                     titleEl.style.alignItems = "baseline";
                     titleEl.style.gap = "0px";
-                    titleEl.innerHTML = '<span class="gif-manager-rainbow-text">ADHDfy</span><span style="font-size: 12px; color: rgba(180, 180, 180, 0.6); font-weight: normal; margin-left: 6px; line-height: 1;">v. 1.0.5</span>';
+                    titleEl.innerHTML = '<span class="gif-manager-rainbow-text">ADHDfy</span><span id="adhdfy-version-badge" style="font-size: 12px; color: rgba(180, 180, 180, 0.6); font-weight: normal; margin-left: 6px; line-height: 1; cursor: pointer; transition: color 0.15s ease;">v. 1.0.5.1</span>';
+                    
+                    const versionBadge = titleEl.querySelector('#adhdfy-version-badge');
+                    if (versionBadge) {
+                        versionBadge.onclick = () => showChangelogModal();
+                        versionBadge.onmouseover = () => versionBadge.style.color = "var(--spice-text)";
+                        versionBadge.onmouseout = () => versionBadge.style.color = "rgba(180, 180, 180, 0.6)";
+                    }
                 }
 
                 const infoBtn = document.createElement("button");
@@ -2670,9 +2691,11 @@
         }
     }
 
-    const VERSION = "1.0.5";
+    // ── Entry Point & Update Logic ──
+
+    const VERSION = "1.0.5.1";
     const CHANGELOG = `
-        <h3 style="margin-top: 0; color: var(--spice-text); text-align: center;">New in 1.0.5:</h3>
+        <h3 style="margin-top: 0; color: var(--spice-text); text-align: center;">New in 1.0.5.1:</h3>
         
         <h4 style="margin: 15px 0 5px 0; color: var(--spice-text);">Added Features:</h4>
         <ul style="margin-top: 0; padding-left: 20px; line-height: 1.7; color: var(--spice-subtext); font-size: 14px;">
@@ -2685,8 +2708,8 @@
         <h4 style="margin: 15px 0 5px 0; color: var(--spice-text);">Bug Fixes:</h4>
         <ul style="margin-top: 0; padding-left: 20px; line-height: 1.7; color: var(--spice-subtext); font-size: 14px;">
             <li style="margin-bottom: 8px;">Cropper now works correctly and invisible parts of a GIF are no longer treated as part of the image, so effects like DVD bounce, dragging, and auto-spin now behave based on what you actually see.</li>
-            <li style="margin-bottom: 8px;">Fixed an issue where dragging a GIF with a 3D flip or scroll effect would snap it a few pixels away.</li>
-            <li style="margin-bottom: 8px;">Dragging a GIF near the top of the screen won't move the Spotify window anymore.</li>
+            <li style="margin-bottom: 8px;">Fixed an annoying issue where dragging a GIF with a 3D flip or scroll effect would instantly snap it a few pixels away.</li>
+            <li style="margin-bottom: 8px;">Dragging near the top of the screen won't move the Spotify window anymore.</li>
             <li style="margin-bottom: 8px;">Clicking the hide/show button no longer causes the GIF to briefly twitch.</li>
             <li style="margin-bottom: 8px;">Deleting or duplicating one GIF no longer resets the active animations for all other GIFs on your screen.</li>
         </ul>
