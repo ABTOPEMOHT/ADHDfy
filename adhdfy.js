@@ -467,7 +467,7 @@
                 cursor: pointer;
                 border: none;
             }
-            .adhdfy-tenor-container {
+            .adhdfy-gif-search-container {
                 display: none;
                 flex-direction: column;
                 gap: 10px;
@@ -476,14 +476,14 @@
                 border-radius: 8px;
                 border: 1px solid var(--spice-button-disabled);
             }
-            .adhdfy-tenor-grid {
+            .adhdfy-gif-search-grid {
                 display: grid;
                 grid-template-columns: repeat(4, 1fr);
                 gap: 5px;
                 max-height: 250px;
                 overflow-y: auto;
             }
-            .adhdfy-tenor-load-more {
+            .adhdfy-gif-search-load-more {
                 display: none;
                 padding: 8px;
                 text-align: center;
@@ -496,14 +496,14 @@
                 margin-top: 5px;
                 transition: all 0.2s ease;
             }
-            .adhdfy-tenor-loading {
+            .adhdfy-gif-search-loading {
                 display: none;
                 text-align: center;
                 color: var(--spice-subtext);
                 font-size: 12px;
                 padding: 5px;
             }
-            .adhdfy-tenor-img {
+            .adhdfy-gif-search-img {
                 width: 100%;
                 height: 80px;
                 object-fit: cover;
@@ -511,18 +511,24 @@
                 cursor: pointer;
                 transition: transform 0.2s ease;
             }
-            .adhdfy-tenor-img:hover {
+            .adhdfy-gif-search-img:hover {
                 transform: scale(1.05);
             }
-            .adhdfy-tenor-no-results {
+            .adhdfy-gif-search-no-results {
                 grid-column: 1 / -1;
                 text-align: center;
                 color: var(--spice-subtext);
             }
-            .adhdfy-tenor-error {
+            .adhdfy-gif-search-error {
                 grid-column: 1 / -1;
                 text-align: center;
                 color: #e22134;
+            }
+            .adhdfy-gif-search-attribution {
+                text-align: center;
+                color: var(--spice-subtext);
+                font-size: 10px;
+                opacity: 0.7;
             }
 
             .adhdfy-media-wrapper {
@@ -593,7 +599,7 @@
     let slotIndex = JSON.parse(Spicetify.LocalStorage.get(STORAGE_INDEX_KEY) || '["Default"]');
     let activeSlot = Spicetify.LocalStorage.get(STORAGE_ACTIVE_KEY) || "Default";
 
-    console.log("ADHDfy v1.0.5.2 loaded");
+    console.log("ADHDfy v1.0.6 loaded");
 
     function applyDefaults(gif) {
         const result = { ...GIF_DEFAULTS, ...gif };
@@ -1820,14 +1826,15 @@
                     <button id="search-gif-btn" class="adhdfy-form-btn">Search GIFs</button>
                     <button id="browse-file-btn" class="adhdfy-form-btn">Browse File</button>
                 </div>
-                <div id="tenor-search-container" class="adhdfy-tenor-container">
+                <div id="gif-search-container" class="adhdfy-gif-search-container">
                     <div class="adhdfy-form-row" style="gap: 5px;">
-                        <input id="tenor-search-input" type="text" placeholder="Type to search GIFs and press Enter..." class="adhdfy-input" style="flex: 1; box-sizing: border-box;">
-                        <button id="tenor-execute-btn" class="adhdfy-form-btn adhdfy-form-btn--primary">Search</button>
+                        <input id="gif-search-input" type="text" placeholder="Type to search GIFs and press Enter..." class="adhdfy-input" style="flex: 1; box-sizing: border-box;">
+                        <button id="gif-search-execute-btn" class="adhdfy-form-btn adhdfy-form-btn--primary">Search</button>
                     </div>
-                    <div id="tenor-results-grid" class="adhdfy-tenor-grid"></div>
-                    <div id="tenor-load-more" class="adhdfy-tenor-load-more">Load More</div>
-                    <div id="tenor-loading" class="adhdfy-tenor-loading">Searching...</div>
+                    <div id="gif-search-results-grid" class="adhdfy-gif-search-grid"></div>
+                    <div id="gif-search-load-more" class="adhdfy-gif-search-load-more">Load More</div>
+                    <div id="gif-search-loading" class="adhdfy-gif-search-loading">Searching...</div>
+                    <div class="adhdfy-gif-search-attribution">Powered by GIPHY</div>
                 </div>
                 <input id="file-input-hidden" type="file" accept="image/*" style="display: none;">
                 <div class="adhdfy-form-row">
@@ -1928,7 +1935,7 @@
         infoContent.className = "adhdfy-info-content";
 
         infoContent.innerHTML = `
-            <p style="margin: 0;">Add your gifs or images by pasting a link, uploading a local file, or searching gifs with Tenor.</p>
+            <p style="margin: 0;">Add your gifs or images by pasting a link, uploading a local file, or searching gifs with GIPHY.</p>
             <p style="margin: 0;"><strong>Important:</strong> Local uploads have a strict 2.5MB limit due to Spotify constraints. For unlimited file sizes, it's best to add your media using direct links or the search tool instead.</p>
             <p style="margin: 0;">Once added, you can move the images anywhere on the screen by dragging them around while this menu is open.</p>
             <p style="margin: 0;">Tweak the look with sliders to adjust the size, opacity, and rotation of your media.</p>
@@ -2373,8 +2380,21 @@
         renderGifs();
     }
 
-    let tenorNextToken = "";
-    let currentTenorQuery = "";
+    const GIPHY_API_KEYS = [
+        "knruuVCKBQkEYFyE5gLLc5EZkUbvK9WI",
+        "ZJwiBPFuOZjSJcoHSpz8XcRMImAoM3sW",
+        "Tr2irz2iaaaZ8VtYPcwtljPkvnIRaOvw"
+    ];
+    let gifSearchKeyIndex = 0;
+    function getNextGiphyKey() {
+        const key = GIPHY_API_KEYS[gifSearchKeyIndex % GIPHY_API_KEYS.length];
+        gifSearchKeyIndex++;
+        return key;
+    }
+    const GIF_SEARCH_LIMIT = 24;
+    let gifSearchOffset = 0;
+    let gifSearchTotalCount = 0;
+    let currentGifSearchQuery = "";
 
     function injectModalHeader() {
         const tryInject = () => {
@@ -2391,7 +2411,7 @@
                     titleEl.style.display = "flex";
                     titleEl.style.alignItems = "baseline";
                     titleEl.style.gap = "0px";
-                    titleEl.innerHTML = '<span class="gif-manager-rainbow-text">ADHDfy</span><span id="adhdfy-version-badge" style="font-size: 12px; color: rgba(180, 180, 180, 0.6); font-weight: normal; margin-left: 6px; line-height: 1; cursor: pointer; transition: color 0.15s ease;">v. 1.0.5.2</span>';
+                    titleEl.innerHTML = '<span class="gif-manager-rainbow-text">ADHDfy</span><span id="adhdfy-version-badge" style="font-size: 12px; color: rgba(180, 180, 180, 0.6); font-weight: normal; margin-left: 6px; line-height: 1; cursor: pointer; transition: color 0.15s ease;">v. 1.0.6</span>';
 
                     const versionBadge = titleEl.querySelector('#adhdfy-version-badge');
                     if (versionBadge) {
@@ -2478,7 +2498,7 @@
         }
 
         setupFileBrowser();
-        setupTenorSearch();
+        setupGifSearch();
         setupAddGifButton();
 
         function setupFileBrowser() {
@@ -2527,110 +2547,110 @@
             }
         }
 
-        function setupTenorSearch() {
+        function setupGifSearch() {
             const searchBtn = addForm.querySelector("#search-gif-btn");
-            const tenorContainer = addForm.querySelector("#tenor-search-container");
-            const tenorInput = addForm.querySelector("#tenor-search-input");
-            const tenorGrid = addForm.querySelector("#tenor-results-grid");
-            const tenorLoading = addForm.querySelector("#tenor-loading");
-            const tenorLoadMoreBtn = addForm.querySelector("#tenor-load-more");
+            const gifSearchContainer = addForm.querySelector("#gif-search-container");
+            const gifSearchInput = addForm.querySelector("#gif-search-input");
+            const gifSearchGrid = addForm.querySelector("#gif-search-results-grid");
+            const gifSearchLoading = addForm.querySelector("#gif-search-loading");
+            const gifSearchLoadMoreBtn = addForm.querySelector("#gif-search-load-more");
 
-            if (!searchBtn || !tenorContainer) return;
+            if (!searchBtn || !gifSearchContainer) return;
 
-            const performTenorSearch = (query, isLoadMore = false) => {
+            const performGifSearch = (query, isLoadMore = false) => {
                 if (!query.trim()) return;
 
                 if (!isLoadMore) {
-                    tenorGrid.innerHTML = "";
-                    tenorNextToken = "";
-                    currentTenorQuery = query;
-                    if (tenorLoadMoreBtn) tenorLoadMoreBtn.style.display = "none";
-                    tenorLoading.style.display = "block";
+                    gifSearchGrid.innerHTML = "";
+                    gifSearchOffset = 0;
+                    gifSearchTotalCount = 0;
+                    currentGifSearchQuery = query;
+                    if (gifSearchLoadMoreBtn) gifSearchLoadMoreBtn.style.display = "none";
+                    gifSearchLoading.style.display = "block";
                 } else {
-                    if (tenorLoadMoreBtn) tenorLoadMoreBtn.innerText = "Loading...";
+                    if (gifSearchLoadMoreBtn) gifSearchLoadMoreBtn.innerText = "Loading...";
                 }
 
-                let fetchUrl = `https://g.tenor.com/v1/search?q=${encodeURIComponent(query)}&key=LIVDSRZULELA&limit=24`;
-                if (isLoadMore && tenorNextToken) {
-                    fetchUrl += `&pos=${tenorNextToken}`;
-                }
+                const fetchUrl = `https://api.giphy.com/v1/gifs/search?api_key=${getNextGiphyKey()}&q=${encodeURIComponent(query)}&limit=${GIF_SEARCH_LIMIT}&offset=${gifSearchOffset}&rating=pg-13`;
 
                 fetch(fetchUrl)
                     .then(res => res.json())
                     .then(data => {
                         if (!isLoadMore) {
-                            tenorLoading.style.display = "none";
-                            tenorGrid.innerHTML = "";
+                            gifSearchLoading.style.display = "none";
+                            gifSearchGrid.innerHTML = "";
                         } else {
-                            if (tenorLoadMoreBtn) tenorLoadMoreBtn.innerText = "Load More";
+                            if (gifSearchLoadMoreBtn) gifSearchLoadMoreBtn.innerText = "Load More";
                         }
 
-                        if (!data.results || data.results.length === 0) {
+                        if (!data.data || data.data.length === 0) {
                             if (!isLoadMore) {
-                                tenorGrid.innerHTML = "<p class='adhdfy-tenor-no-results'>No results found.</p>";
+                                gifSearchGrid.innerHTML = "<p class='adhdfy-gif-search-no-results'>No results found.</p>";
                             }
-                            if (tenorLoadMoreBtn) tenorLoadMoreBtn.style.display = "none";
+                            if (gifSearchLoadMoreBtn) gifSearchLoadMoreBtn.style.display = "none";
                             return;
                         }
 
-                        tenorNextToken = data.next || "";
-                        if (tenorLoadMoreBtn) {
-                            tenorLoadMoreBtn.style.display = (tenorNextToken && data.results.length >= 24) ? "block" : "none";
+                        const pagination = data.pagination || {};
+                        gifSearchTotalCount = pagination.total_count || 0;
+                        gifSearchOffset = (pagination.offset || gifSearchOffset) + (pagination.count || data.data.length);
+                        if (gifSearchLoadMoreBtn) {
+                            gifSearchLoadMoreBtn.style.display = (gifSearchOffset < gifSearchTotalCount) ? "block" : "none";
                         }
 
-                        data.results.forEach(item => {
+                        data.data.forEach(item => {
                             const img = document.createElement("img");
-                            img.src = item.media[0].tinygif.url;
-                            img.className = "adhdfy-tenor-img";
+                            img.src = item.images.fixed_height_small.url;
+                            img.className = "adhdfy-gif-search-img";
 
                             img.onclick = () => {
-                                if (gifUrlInputRef) gifUrlInputRef.value = item.media[0].gif.url;
+                                if (gifUrlInputRef) gifUrlInputRef.value = item.images.original.url;
                                 if (pendingDirectUploadBase64) resetBrowseBtn();
 
-                                tenorContainer.style.display = "none";
+                                gifSearchContainer.style.display = "none";
                                 searchBtn.style.background = "var(--spice-card)";
                                 searchBtn.style.color = "var(--spice-text)";
                                 showCustomNotification("Media Selected! Click Add to import.", false);
                             };
-                            tenorGrid.appendChild(img);
+                            gifSearchGrid.appendChild(img);
                         });
                     })
                     .catch(err => {
                         if (isLoadMore) {
-                            if (tenorLoadMoreBtn) tenorLoadMoreBtn.innerText = "Load More";
+                            if (gifSearchLoadMoreBtn) gifSearchLoadMoreBtn.innerText = "Load More";
                         } else {
-                            tenorLoading.style.display = "none";
-                            tenorGrid.innerHTML = "<p class='adhdfy-tenor-error'>Failed to load GIFs. Check connection.</p>";
+                            gifSearchLoading.style.display = "none";
+                            gifSearchGrid.innerHTML = "<p class='adhdfy-gif-search-error'>Failed to load GIFs. Check connection.</p>";
                         }
-                        console.error("GifManager Tenor API Error:", err);
+                        console.error("GifManager GIPHY API Error:", err);
                     });
             };
 
-            if (tenorLoadMoreBtn) {
-                tenorLoadMoreBtn.onclick = (e) => {
+            if (gifSearchLoadMoreBtn) {
+                gifSearchLoadMoreBtn.onclick = (e) => {
                     e.preventDefault();
-                    performTenorSearch(currentTenorQuery, true);
+                    performGifSearch(currentGifSearchQuery, true);
                 };
             }
 
-            const executeBtn = addForm.querySelector("#tenor-execute-btn");
+            const executeBtn = addForm.querySelector("#gif-search-execute-btn");
             if (executeBtn) {
                 executeBtn.onclick = (e) => {
                     e.preventDefault();
-                    if (tenorInput.value.trim()) performTenorSearch(tenorInput.value);
+                    if (gifSearchInput.value.trim()) performGifSearch(gifSearchInput.value);
                 };
             }
 
             searchBtn.onclick = (e) => {
                 e.preventDefault();
-                const isHidden = getComputedStyle(tenorContainer).display === "none";
-                tenorContainer.style.display = isHidden ? "flex" : "none";
+                const isHidden = getComputedStyle(gifSearchContainer).display === "none";
+                gifSearchContainer.style.display = isHidden ? "flex" : "none";
                 if (isHidden) {
                     searchBtn.style.background = "var(--spice-button)";
                     searchBtn.style.color = "#000";
-                    tenorInput.focus();
-                    if (tenorGrid.innerHTML === "") {
-                        performTenorSearch("memes");
+                    gifSearchInput.focus();
+                    if (gifSearchGrid.innerHTML === "") {
+                        performGifSearch("memes");
                     }
                 } else {
                     searchBtn.style.background = "var(--spice-card)";
@@ -2638,10 +2658,10 @@
                 }
             };
 
-            tenorInput.onkeydown = (e) => {
+            gifSearchInput.onkeydown = (e) => {
                 if (e.key === "Enter") {
                     e.preventDefault();
-                    if (tenorInput.value.trim()) performTenorSearch(tenorInput.value);
+                    if (gifSearchInput.value.trim()) performGifSearch(gifSearchInput.value);
                 }
             };
         }
@@ -2707,8 +2727,17 @@
 
     // Entry Point & Update Logic
 
-    const VERSION = "1.0.5.2";
+    const VERSION = "1.0.6";
     const CHANGELOG = `
+        <h3 style="margin-top: 0; color: var(--spice-text); text-align: center;">New in 1.0.6:</h3>
+
+        <h4 style="margin: 15px 0 5px 0; color: var(--spice-text);">Bug Fixes:</h4>
+        <ul style="margin-top: 0; padding-left: 20px; line-height: 1.7; color: var(--spice-subtext); font-size: 14px;">
+            <li style="margin-bottom: 8px;">Search GIFs feature changed to GIPHY, due to Tenor's API termination.</li>
+        </ul>
+
+        <hr style="border-color: var(--spice-button-disabled); margin: 20px 0;">
+
         <h3 style="margin-top: 0; color: var(--spice-text); text-align: center;">New in 1.0.5.2:</h3>
 
         <h4 style="margin: 15px 0 5px 0; color: var(--spice-text);">Bug Fixes:</h4>
