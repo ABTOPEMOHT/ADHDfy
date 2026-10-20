@@ -599,7 +599,7 @@
     let slotIndex = JSON.parse(Spicetify.LocalStorage.get(STORAGE_INDEX_KEY) || '["Default"]');
     let activeSlot = Spicetify.LocalStorage.get(STORAGE_ACTIVE_KEY) || "Default";
 
-    console.log("ADHDfy v1.0.6 loaded");
+    console.log("ADHDfy v1.0.6.1 loaded");
 
     function applyDefaults(gif) {
         const result = { ...GIF_DEFAULTS, ...gif };
@@ -2411,7 +2411,7 @@
                     titleEl.style.display = "flex";
                     titleEl.style.alignItems = "baseline";
                     titleEl.style.gap = "0px";
-                    titleEl.innerHTML = '<span class="gif-manager-rainbow-text">ADHDfy</span><span id="adhdfy-version-badge" style="font-size: 12px; color: rgba(180, 180, 180, 0.6); font-weight: normal; margin-left: 6px; line-height: 1; cursor: pointer; transition: color 0.15s ease;">v. 1.0.6</span>';
+                    titleEl.innerHTML = '<span class="gif-manager-rainbow-text">ADHDfy</span><span id="adhdfy-version-badge" style="font-size: 12px; color: rgba(180, 180, 180, 0.6); font-weight: normal; margin-left: 6px; line-height: 1; cursor: pointer; transition: color 0.15s ease;">v. 1.0.6.1</span>';
 
                     const versionBadge = titleEl.querySelector('#adhdfy-version-badge');
                     if (versionBadge) {
@@ -2727,8 +2727,17 @@
 
     // Entry Point & Update Logic
 
-    const VERSION = "1.0.6";
+    const VERSION = "1.0.6.1";
     const CHANGELOG = `
+        <h3 style="margin-top: 0; color: var(--spice-text); text-align: center;">New in 1.0.6.1:</h3>
+
+        <h4 style="margin: 15px 0 5px 0; color: var(--spice-text);">Bug Fixes:</h4>
+        <ul style="margin-top: 0; padding-left: 20px; line-height: 1.7; color: var(--spice-subtext); font-size: 14px;">
+            <li style="margin-bottom: 8px;">Fixed the ADHDfy button not appearing in the top bar on newer Spotify versions due to the updated Spotify layout.</li>
+        </ul>
+
+        <hr style="border-color: var(--spice-button-disabled); margin: 20px 0;">
+
         <h3 style="margin-top: 0; color: var(--spice-text); text-align: center;">New in 1.0.6:</h3>
 
         <h4 style="margin: 15px 0 5px 0; color: var(--spice-text);">Bug Fixes:</h4>
@@ -2802,6 +2811,38 @@
             }
         });
     }
+
+    function findHistoryButtonsContainer() {
+        const legacy = document.querySelector(".main-globalNav-historyButtons, .main-topBar-historyButtons");
+        if (legacy) return legacy;
+
+        const wrapped = document.querySelector(".main-globalNav-historyButtonsWrapper > .link-subtle");
+        if (wrapped) return wrapped;
+
+        const backLabel = Spicetify.Locale?.get?.("navbar.go-back");
+        if (backLabel) {
+            const backBtn = document.querySelector(`button[aria-label="${CSS.escape(backLabel)}"]`);
+            if (backBtn) return backBtn.parentElement;
+        }
+        return null;
+    }
+
+    function ensureTopBarBtnMounted() {
+        if (topBarBtn.element.isConnected) return true;
+
+        const container = findHistoryButtonsContainer();
+        if (!container) return false;
+
+        const nativeBtn = container.querySelector("button");
+        if (nativeBtn) topBarBtn.button.className = nativeBtn.className;
+        container.appendChild(topBarBtn.element);
+        return true;
+    }
+
+    const mountInterval = setInterval(() => {
+        if (ensureTopBarBtnMounted()) clearInterval(mountInterval);
+    }, 500);
+    Spicetify.Platform?.History?.listen?.(() => setTimeout(ensureTopBarBtnMounted, 100));
 
     function showChangelogModal() {
         const overlay = document.createElement("div");
