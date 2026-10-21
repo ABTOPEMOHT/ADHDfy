@@ -4,6 +4,8 @@
         return;
     }
 
+    const VERSION = "1.0.7";
+
     if (!document.getElementById("gif-manager-style")) {
         const style = document.createElement("style");
         style.id = "gif-manager-style";
@@ -533,9 +535,21 @@
 
             .adhdfy-media-wrapper {
                 position: fixed;
+                left: 0;
+                top: 0;
                 z-index: 9999;
                 line-height: 0;
+                will-change: transform;
                 -webkit-app-region: no-drag;
+            }
+            .adhdfy-rain-canvas {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100vw;
+                height: 100vh;
+                z-index: 9998;
+                pointer-events: none;
             }
             .adhdfy-media-wrapper--clone {
                 z-index: 9998;
@@ -557,7 +571,6 @@
 
     const STORAGE_INDEX_KEY = "adhdfy-slot-index";
     const STORAGE_ACTIVE_KEY = "adhdfy-slot-active";
-    const OLD_STORAGE_KEY = "MyCustomGifs";
 
     const GIF_DEFAULTS = {
         anchor: "[data-testid='now-playing-widget']",
@@ -585,7 +598,6 @@
         crop: { t: 0, r: 0, b: 0, l: 0 }
     };
 
-    // Migrate Legacy LocalStorage
     if (!Spicetify.LocalStorage.get(STORAGE_INDEX_KEY) && Spicetify.LocalStorage.get("adhdfy-layout")) {
         Spicetify.LocalStorage.set("adhdfy-layout-Default", Spicetify.LocalStorage.get("adhdfy-layout"));
         Spicetify.LocalStorage.set(STORAGE_INDEX_KEY, JSON.stringify(["Default"]));
@@ -596,25 +608,96 @@
         Spicetify.LocalStorage.set(STORAGE_ACTIVE_KEY, "Default");
     }
 
-    let slotIndex = JSON.parse(Spicetify.LocalStorage.get(STORAGE_INDEX_KEY) || '["Default"]');
-    let activeSlot = Spicetify.LocalStorage.get(STORAGE_ACTIVE_KEY) || "Default";
+    let slotIndex;
+    try {
+        slotIndex = JSON.parse(Spicetify.LocalStorage.get(STORAGE_INDEX_KEY) || '["Default"]');
+    } catch (err) {
+        slotIndex = ["Default"];
+    }
+    if (!Array.isArray(slotIndex) || slotIndex.length === 0) slotIndex = ["Default"];
+    let activeSlot = Spicetify.LocalStorage.get(STORAGE_ACTIVE_KEY) || slotIndex[0];
 
-    console.log("ADHDfy v1.0.6.1 loaded");
+    console.log(`ADHDfy v${VERSION} loaded`);
+
+    function newId() {
+        return Math.random().toString(36).substring(2, 10);
+    }
 
     function applyDefaults(gif) {
         const result = { ...GIF_DEFAULTS, ...gif };
         if (gif.opacity === undefined) result.opacity = GIF_DEFAULTS.opacity;
         if (gif.visible === undefined) result.visible = GIF_DEFAULTS.visible;
         if (!gif.crop) result.crop = { ...GIF_DEFAULTS.crop };
-        if (!result.id) result.id = Math.random().toString(36).substring(2, 10);
+        if (!result.id) result.id = newId();
+        if (result.pos && result.pos.region === "window") delete result.pos;
+        delete result.pinWindow;
         return result;
     }
 
-    function saveCurrentLayout() {
-        Spicetify.LocalStorage.set(`adhdfy-layout-${activeSlot}`, JSON.stringify(savedGifs));
+    function layoutKey(slot) {
+        return `adhdfy-layout-${slot}`;
     }
 
-    let savedGifs = JSON.parse(Spicetify.LocalStorage.get(`adhdfy-layout-${activeSlot}`) || "[]").map(applyDefaults);
+    function readLayout(slot) {
+        try {
+            const parsed = JSON.parse(Spicetify.LocalStorage.get(layoutKey(slot)) || "[]");
+            return Array.isArray(parsed) ? parsed.filter(g => g && typeof g === "object") : [];
+        } catch (err) {
+            console.error(`ADHDfy: layout "${slot}" could not be read`, err);
+            return [];
+        }
+    }
+
+    function loadLayout(slot) {
+        const seenIds = new Set();
+        return readLayout(slot).map(applyDefaults).map(gif => {
+            if (seenIds.has(gif.id)) gif.id = newId();
+            seenIds.add(gif.id);
+            return gif;
+        });
+    }
+
+    const SAVE_DEBOUNCE_MS = 300;
+    let saveTimer = null;
+
+    function writeLayout() {
+        saveTimer = null;
+        Spicetify.LocalStorage.set(layoutKey(activeSlot), JSON.stringify(savedGifs));
+    }
+
+    function saveCurrentLayout(immediate = false) {
+        if (saveTimer) {
+            clearTimeout(saveTimer);
+            saveTimer = null;
+        }
+        if (immediate) {
+            writeLayout();
+            return;
+        }
+        saveTimer = setTimeout(() => {
+            try {
+                writeLayout();
+            } catch (err) {
+                console.error("ADHDfy: failed to save layout", err);
+                showCustomNotification("Error: Could not save the layout (storage is full).", true);
+            }
+        }, SAVE_DEBOUNCE_MS);
+    }
+
+    function flushSave() {
+        if (!saveTimer) return;
+        clearTimeout(saveTimer);
+        try {
+            writeLayout();
+        } catch (err) {
+            console.error("ADHDfy: failed to save layout", err);
+        }
+    }
+
+    window.addEventListener("beforeunload", flushSave);
+    window.addEventListener("pagehide", flushSave);
+
+    let savedGifs = loadLayout(activeSlot);
 
     const PHYSICS = {
         DT_MAX: 3,
@@ -639,9 +722,25 @@
         SPIN_SPEED_MULT: 0.3,
         FLIP_SPEED_MULT: 0.005,
         FLIP_SNAP_SMOOTHING: 0.85,
+        FLIP_SNAP_EPSILON: 0.001,
         TINT_SATURATE: 5,
         TINT_HUE_OFFSET: 40
     };
+
+    const LAYOUT = {
+        REGION_CHECK_MS: 1000,
+        LEGACY_ANCHOR_WAIT_MS: 8000,
+        LEGACY_RETRY_MS: 250,
+        DUPLICATE_OFFSET: 20,
+        RAIN_SPRITE_SCALE: 1.5,
+        RAIN_SPRITE_MAX: 2048,
+        MAX_RAIN_COUNT: 150,
+        MEDIA_CLEANUP_DELAY: 2000
+    };
+
+    function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+    }
 
     function hexToHSL(hex) {
         const r = parseInt(hex.substr(1, 2), 16) / 255;
@@ -660,7 +759,15 @@
         return { h, s, l };
     }
 
-    let renderedElements = [];
+    function buildTintFilter(hex) {
+        const hsl = hexToHSL(hex);
+        const saturate = hsl.s * PHYSICS.TINT_SATURATE;
+        const brightness = hsl.l * 2;
+        return `grayscale(1) sepia(1) saturate(${saturate}) hue-rotate(${hsl.h - PHYSICS.TINT_HUE_OFFSET}deg) brightness(${brightness})`;
+    }
+
+    let renderedItems = [];
+    const renderedById = new Map();
     let isEditMode = false;
     let globalMouseX = window.innerWidth / 2;
     let globalMouseY = window.innerHeight / 2;
@@ -676,16 +783,201 @@
         FADE_DURATION: 300
     };
 
-    // Utility Functions
+    const MEDIA_DB_NAME = "adhdfy-media";
+    const MEDIA_STORE = "files";
+    const IDB_PREFIX = "idb:";
+    let mediaDbPromise = null;
+    let mediaOpsInFlight = 0;
+    const mediaUrlPromises = new Map();
+    const resolvedMediaUrls = new Map();
 
-    function getMediaType(url) {
+    function openMediaDb() {
+        if (!mediaDbPromise) {
+            mediaDbPromise = new Promise((resolve, reject) => {
+                const req = indexedDB.open(MEDIA_DB_NAME, 1);
+                req.onupgradeneeded = () => req.result.createObjectStore(MEDIA_STORE);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+            mediaDbPromise.catch(() => { mediaDbPromise = null; });
+        }
+        return mediaDbPromise;
+    }
+
+    async function mediaTx(mode, work) {
+        const db = await openMediaDb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(MEDIA_STORE, mode);
+            const request = work(tx.objectStore(MEDIA_STORE));
+            tx.oncomplete = () => resolve(request ? request.result : undefined);
+            tx.onerror = () => reject(tx.error);
+            tx.onabort = () => reject(tx.error);
+        });
+    }
+
+    async function storeMediaBlob(blob) {
+        const id = Date.now().toString(36) + newId();
+        await mediaTx("readwrite", store => store.put(blob, id));
+        return id;
+    }
+
+    function loadMediaBlob(id) {
+        return mediaTx("readonly", store => store.get(id));
+    }
+
+    function isStoredMedia(url) {
+        return typeof url === "string" && url.startsWith(IDB_PREFIX);
+    }
+
+    function mediaIdOf(url) {
+        return url.slice(IDB_PREFIX.length);
+    }
+
+    function resolveMediaUrl(url) {
+        if (!isStoredMedia(url)) return Promise.resolve(url);
+        const id = mediaIdOf(url);
+        if (!mediaUrlPromises.has(id)) {
+            const promise = loadMediaBlob(id)
+                .then(blob => {
+                    if (!blob) return null;
+                    const objectUrl = URL.createObjectURL(blob);
+                    resolvedMediaUrls.set(id, objectUrl);
+                    return objectUrl;
+                })
+                .catch(err => {
+                    console.error("ADHDfy: failed to read stored media", err);
+                    mediaUrlPromises.delete(id);
+                    return null;
+                });
+            mediaUrlPromises.set(id, promise);
+        }
+        return mediaUrlPromises.get(id);
+    }
+
+    function setMediaSrc(img, url) {
+        if (!isStoredMedia(url)) {
+            img.src = url;
+            return;
+        }
+        const ready = resolvedMediaUrls.get(mediaIdOf(url));
+        if (ready) {
+            img.src = ready;
+            return;
+        }
+        resolveMediaUrl(url).then(objectUrl => {
+            if (objectUrl) img.src = objectUrl;
+            else img.dispatchEvent(new Event("error"));
+        });
+    }
+
+    async function getMediaBlob(url) {
+        if (isStoredMedia(url)) return loadMediaBlob(mediaIdOf(url));
+        const res = await fetch(url);
+        return res.ok ? res.blob() : null;
+    }
+
+    function blobToDataUrl(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    async function dataUrlToBlob(dataUrl) {
+        return (await fetch(dataUrl)).blob();
+    }
+
+    async function storeInlineMedia(gif, cache) {
+        if (typeof gif.url !== "string" || !gif.url.startsWith("data:")) return false;
+        let stored = cache.get(gif.url);
+        if (!stored) {
+            const blob = await dataUrlToBlob(gif.url);
+            stored = { url: IDB_PREFIX + await storeMediaBlob(blob), mime: blob.type };
+            cache.set(gif.url, stored);
+        }
+        gif.url = stored.url;
+        gif.mime = stored.mime;
+        return true;
+    }
+
+    async function migrateInlineMedia() {
+        mediaOpsInFlight++;
+        try {
+            const cache = new Map();
+            for (const slot of slotIndex) {
+                if (slot === activeSlot) continue;
+                const gifs = readLayout(slot);
+                let changed = false;
+                for (const gif of gifs) {
+                    if (await storeInlineMedia(gif, cache)) changed = true;
+                }
+                if (changed) Spicetify.LocalStorage.set(layoutKey(slot), JSON.stringify(gifs));
+            }
+
+            let activeChanged = false;
+            for (const gif of savedGifs) {
+                if (await storeInlineMedia(gif, cache)) {
+                    activeChanged = true;
+                    const item = renderedById.get(gif.id);
+                    if (item) item.url = gif.url;
+                }
+            }
+            if (activeChanged) saveCurrentLayout(true);
+        } catch (err) {
+            console.warn("ADHDfy: could not move uploaded media to IndexedDB, keeping it inline", err);
+        } finally {
+            mediaOpsInFlight--;
+        }
+    }
+
+    let mediaCleanupTimer = null;
+
+    function scheduleMediaCleanup() {
+        clearTimeout(mediaCleanupTimer);
+        mediaCleanupTimer = setTimeout(cleanupUnusedMedia, LAYOUT.MEDIA_CLEANUP_DELAY);
+    }
+
+    async function cleanupUnusedMedia() {
+        if (mediaOpsInFlight > 0) {
+            scheduleMediaCleanup();
+            return;
+        }
+        flushSave();
+        const referenced = new Set();
+        for (const slot of slotIndex) {
+            const gifs = slot === activeSlot ? savedGifs : readLayout(slot);
+            gifs.forEach(gif => {
+                if (isStoredMedia(gif.url)) referenced.add(mediaIdOf(gif.url));
+            });
+        }
+        try {
+            const ids = await mediaTx("readonly", store => store.getAllKeys());
+            const unused = ids.filter(id => !referenced.has(id));
+            if (unused.length === 0) return;
+            await mediaTx("readwrite", store => {
+                unused.forEach(id => store.delete(id));
+            });
+            unused.forEach(id => {
+                const objectUrl = resolvedMediaUrls.get(id);
+                if (objectUrl) URL.revokeObjectURL(objectUrl);
+                resolvedMediaUrls.delete(id);
+                mediaUrlPromises.delete(id);
+            });
+        } catch (err) {
+            console.warn("ADHDfy: media cleanup failed", err);
+        }
+    }
+
+    function getMediaType(url, mime) {
         if (!url) return "GIF";
-        if (url.startsWith("data:")) {
-            const mime = url.substring(5, url.indexOf(";"));
-            if (mime.includes("image/webp")) return "WEBP";
-            if (mime.includes("image/jpeg") || mime.includes("image/jpg")) return "JPG";
-            if (mime.includes("image/png")) return "PNG";
-            if (mime.includes("image/gif")) return "GIF";
+        if (url.startsWith("data:") || isStoredMedia(url)) {
+            const type = url.startsWith("data:") ? url.substring(5, url.indexOf(";")) : (mime || "");
+            if (type.includes("image/webp")) return "WEBP";
+            if (type.includes("image/jpeg") || type.includes("image/jpg")) return "JPG";
+            if (type.includes("image/png")) return "PNG";
+            if (type.includes("image/gif")) return "GIF";
             return "IMG";
         }
         const lowerUrl = url.toLowerCase().split('?')[0];
@@ -698,7 +990,7 @@
 
     function createMediaElement(url) {
         const el = document.createElement("img");
-        el.src = url;
+        setMediaSrc(el, url);
         return el;
     }
 
@@ -740,15 +1032,11 @@
     function createMediaWrapper(gifData, isClone = false) {
         const wrapper = document.createElement("div");
         wrapper.className = isClone ? "adhdfy-media-wrapper adhdfy-media-wrapper--clone" : "adhdfy-media-wrapper";
-        wrapper.style.opacity = gifData.opacity;
-        wrapper.style.transform = getTransformString(gifData.flipped, gifData.rotation);
         if (!isClone) {
             wrapper.ondragstart = () => false;
-            wrapper.dataset.dragging = "false";
         }
 
         const img = createMediaElement(gifData.url);
-        img.style.width = `${gifData.size}px`;
         img.className = "adhdfy-media-img";
 
         if (!isClone) {
@@ -782,150 +1070,386 @@
         return { wrapper, img, borderBox };
     }
 
-    function setupEditMode(wrapper, borderBox, gifData) {
-        wrapper.style.pointerEvents = "auto";
-        wrapper.style.cursor = "grab";
-        borderBox.style.outline = "2px dashed var(--spice-button)";
-        borderBox.style.background = "rgba(255, 255, 255, 0.1)";
-
-        wrapper.onmousedown = function (event) {
-            event.preventDefault();
-            wrapper.dataset.dragging = "true";
-            wrapper.style.cursor = "grabbing";
-            borderBox.style.transition = 'none';
-
-            const activeModal = document.querySelector("generic-modal");
-            if (activeModal) {
-                activeModal.style.transition = "opacity 0.2s ease";
-                activeModal.style.opacity = "0.2";
-                activeModal.style.pointerEvents = "none";
-            }
-
-            let lastMouseX = event.clientX;
-            let lastMouseY = event.clientY;
-
-            function onMouseMove(event) {
-                const currentLeft = parseFloat(wrapper.style.left) || 0;
-                const currentTop = parseFloat(wrapper.style.top) || 0;
-
-                const dx = event.clientX - lastMouseX;
-                const dy = event.clientY - lastMouseY;
-
-                lastMouseX = event.clientX;
-                lastMouseY = event.clientY;
-
-                wrapper.style.left = (currentLeft + dx) + 'px';
-                wrapper.style.top = (currentTop + dy) + 'px';
-                wrapper.style.bottom = 'auto';
-            }
-
-            document.addEventListener('mousemove', onMouseMove);
-
-            document.onmouseup = function () {
-                document.removeEventListener('mousemove', onMouseMove);
-                wrapper.style.cursor = "grab";
-                wrapper.dataset.dragging = "false";
-                borderBox.style.transition = 'outline 0.2s ease, box-shadow 0.2s ease';
-
-                if (activeModal) {
-                    activeModal.style.opacity = "1";
-                    activeModal.style.pointerEvents = "auto";
-                }
-
-                document.onmouseup = null;
-
-                const anchorEl = document.querySelector(gifData.anchor) || document.body;
-                const rect = anchorEl.getBoundingClientRect();
-
-                const physicalLeft = parseFloat(wrapper.style.left);
-                const physicalTop = parseFloat(wrapper.style.top);
-
-                const imgCenterX = physicalLeft + (wrapper.offsetWidth / 2);
-                const imgCenterY = physicalTop + (wrapper.offsetHeight / 2);
-
-                gifData.xPct = (imgCenterX - rect.left) / (rect.width || 1);
-                gifData.yPct = (imgCenterY - rect.top) / (rect.height || 1);
-
-                saveCurrentLayout();
-            };
-        };
-
-        if (gifData.attachedToProgress || gifData.followMouse || gifData.dvdBounce || gifData.rainFall) {
-            wrapper.style.pointerEvents = "none";
-            borderBox.style.outline = gifData.followMouse ? "2px solid #0b96ff" : (gifData.dvdBounce ? "2px solid #ffc500" : (gifData.rainFall ? "2px solid #a855f7" : "2px solid #1ed760"));
-            wrapper.onmousedown = null;
+    function setStyle(el, cache, prop, value) {
+        if (cache[prop] !== value) {
+            cache[prop] = value;
+            el.style[prop] = value;
         }
     }
 
-    function renderGifs() {
-        const oldStates = {};
-        renderedElements.forEach(item => {
-            const id = item.cloneId || item.data.id;
-            if (id) {
-                oldStates[id] = {
-                    oldW: item.img.offsetWidth,
-                    oldH: item.img.offsetHeight,
-                    currentX: item.currentX,
-                    currentY: item.currentY,
-                    dvdVx: item.dvdVx,
-                    dvdVy: item.dvdVy,
-                    rainX: item.rainX,
-                    rainY: item.rainY,
-                    rainScale: item.rainScale,
-                    rainRot: item.rainRot,
-                    rainSpeedMult: item.rainSpeedMult,
-                    rainRotSpeed: item.rainRotSpeed,
-                    stepPhase: item.stepPhase,
-                    stepAmp: item.stepAmp,
-                    bobY: item.bobY,
-                    wobbleRot: item.wobbleRot,
-                    currentSpin: item.currentSpin,
-                    currentHueOffset: item.currentHueOffset,
-                    flipPhase: item.flipPhase,
-                    currentScaleX: item.currentScaleX
-                };
-            }
-        });
+    const REGIONS = {
+        nav: { selectors: [".Root__globalNav", "#global-nav-bar"], area: "global-nav" },
+        left: { selectors: ["#Desktop_LeftSidebar_Id", ".Root__nav-bar"], area: "left-sidebar" },
+        main: { selectors: ["#main-view", ".Root__main-view"], area: "main-view" },
+        right: { selectors: [".Root__right-sidebar"], area: "right-sidebar" },
+        player: { selectors: [".main-nowPlayingBar-container", "[data-testid='now-playing-bar']", ".Root__now-playing-bar"], area: "now-playing-bar" }
+    };
+    const REGION_PRIORITY = ["player", "nav", "right", "left", "main"];
+    const regionCache = {};
+    let viewportRect = { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight, width: window.innerWidth, height: window.innerHeight };
+    let regionsDirty = true;
+    const startedAt = performance.now();
 
-        renderedElements.forEach(item => item.img.remove());
-        renderedElements = [];
-
-        savedGifs.forEach((gifData) => {
-            if (!gifData.id) {
-                gifData.id = Math.random().toString(36).substring(2, 10);
-            }
-            const { wrapper, img, borderBox } = createMediaWrapper(gifData);
-
-            if (isEditMode) {
-                setupEditMode(wrapper, borderBox, gifData);
-            } else {
-                wrapper.style.pointerEvents = "none";
-                borderBox.style.outline = "none";
-                borderBox.style.background = "transparent";
-                wrapper.onmousedown = null;
-            }
-
-            document.body.appendChild(wrapper);
-            const stateObj = oldStates[gifData.id] || {};
-            renderedElements.push({ img: wrapper, realImg: img, borderBox: borderBox, data: gifData, ...stateObj });
-
-            if (gifData.rainFall) {
-                const clonesCount = Math.max(0, (gifData.rainCount || 15) - 1);
-                for (let i = 0; i < clonesCount; i++) {
-                    const clone = createMediaWrapper(gifData, true);
-
-                    document.body.appendChild(clone.wrapper);
-                    const cloneId = gifData.id + "_clone" + i;
-                    const cloneStateObj = oldStates[cloneId] || {};
-                    renderedElements.push({ img: clone.wrapper, realImg: clone.img, borderBox: clone.borderBox, data: gifData, isRainClone: true, cloneId: cloneId, ...cloneStateObj });
-                }
-            }
-        });
-
-        trackAnchors(performance.now(), true);
+    function findByGridArea(area) {
+        const grid = document.querySelector(".Root__top-container");
+        if (!grid) return null;
+        const candidates = [...grid.children];
+        for (const child of grid.children) candidates.push(...child.children);
+        return candidates.find(el => {
+            const cs = getComputedStyle(el);
+            return cs.gridRowStart === area && cs.gridColumnStart === area;
+        }) || null;
     }
 
-    // Animation Update Functions
+    function findRegionElement(name) {
+        const cached = regionCache[name]?.el;
+        if (cached && cached.isConnected) return cached;
+        for (const selector of REGIONS[name].selectors) {
+            const el = document.querySelector(selector);
+            if (el) return el;
+        }
+        return findByGridArea(REGIONS[name].area);
+    }
+
+    const regionResizeObserver = new ResizeObserver(() => markLayoutDirty());
+
+    function refreshRegionElements() {
+        for (const name of Object.keys(REGIONS)) {
+            const el = findRegionElement(name);
+            const prev = regionCache[name]?.el || null;
+            if (el === prev) continue;
+            if (prev) regionResizeObserver.unobserve(prev);
+            if (el) regionResizeObserver.observe(el);
+            regionCache[name] = { el, rect: null };
+            regionsDirty = true;
+        }
+    }
+
+    function toPlainRect(r) {
+        return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+    }
+
+    function sameRect(a, b) {
+        return !!a && !!b && a.left === b.left && a.top === b.top && a.width === b.width && a.height === b.height;
+    }
+
+    function readRegionRects() {
+        let changed = false;
+        const vw = window.innerWidth, vh = window.innerHeight;
+        if (viewportRect.width !== vw || viewportRect.height !== vh) {
+            viewportRect = { left: 0, top: 0, right: vw, bottom: vh, width: vw, height: vh };
+            changed = true;
+        }
+        for (const name of Object.keys(regionCache)) {
+            const entry = regionCache[name];
+            const rect = entry.el ? toPlainRect(entry.el.getBoundingClientRect()) : null;
+            if (!sameRect(rect, entry.rect)) changed = true;
+            entry.rect = rect;
+        }
+        return changed;
+    }
+
+    function markLayoutDirty() {
+        regionsDirty = true;
+        requestRender();
+    }
+
+    window.addEventListener("resize", () => {
+        resizeRainCanvas();
+        markLayoutDirty();
+    });
+
+    setInterval(() => {
+        if (renderedItems.length === 0) return;
+        refreshRegionElements();
+        if (readRegionRects()) requestRender();
+    }, LAYOUT.REGION_CHECK_MS);
+
+    refreshRegionElements();
+
+    function regionRect(name) {
+        const entry = regionCache[name];
+        if (!entry || !entry.el || !entry.rect) return viewportRect;
+        return entry.rect;
+    }
+
+    function distanceToRect(x, y, rect) {
+        const dx = Math.max(rect.left - x, 0, x - rect.right);
+        const dy = Math.max(rect.top - y, 0, y - rect.bottom);
+        return Math.hypot(dx, dy);
+    }
+
+    function axisAnchor(fraction) {
+        if (fraction < 1 / 3) return "start";
+        if (fraction > 2 / 3) return "end";
+        return "center";
+    }
+
+    function axisBase(anchor, start, size) {
+        if (anchor === "start") return start;
+        if (anchor === "end") return start + size;
+        return start + size / 2;
+    }
+
+    function computePosAt(cx, cy) {
+        let best = null;
+        for (const name of REGION_PRIORITY) {
+            const entry = regionCache[name];
+            const rect = entry && entry.el ? entry.rect : null;
+            if (!rect || rect.width === 0 || rect.height === 0) continue;
+            const dist = distanceToRect(cx, cy, rect);
+            if (!best || dist < best.dist) best = { name, rect, dist };
+        }
+
+        const region = best ? best.name : "viewport";
+        const rect = best ? best.rect : viewportRect;
+        const ax = axisAnchor((cx - rect.left) / rect.width);
+        const ay = axisAnchor((cy - rect.top) / rect.height);
+        return {
+            region,
+            ax,
+            ay,
+            dx: cx - axisBase(ax, rect.left, rect.width),
+            dy: cy - axisBase(ay, rect.top, rect.height)
+        };
+    }
+
+    function resolveAnchoredCenter(gif) {
+        const pos = gif.pos;
+        const vw = viewportRect.width, vh = viewportRect.height;
+        const rect = regionRect(pos.region);
+        if (!rect || rect.width === 0 || rect.height === 0) return null;
+        return {
+            x: clamp(axisBase(pos.ax, rect.left, rect.width) + pos.dx, 0, vw),
+            y: clamp(axisBase(pos.ay, rect.top, rect.height) + pos.dy, 0, vh)
+        };
+    }
+
+    function writeLegacyPosition(gif, cx, cy) {
+        const anchorEl = document.querySelector(gif.anchor || GIF_DEFAULTS.anchor);
+        if (!anchorEl) return;
+        const rect = anchorEl.getBoundingClientRect();
+        if (rect.width === 0) return;
+        gif.xPct = (cx - rect.left) / rect.width;
+        gif.yPct = (cy - rect.top) / (rect.height || 1);
+    }
+
+    function placeGifAt(gif, cx, cy) {
+        refreshRegionElements();
+        readRegionRects();
+        gif.pos = computePosAt(cx, cy);
+        writeLegacyPosition(gif, cx, cy);
+    }
+
+    function isValidPos(pos) {
+        if (!pos || typeof pos !== "object" || typeof pos.region !== "string" || pos.region === "window") return false;
+        return ["start", "center", "end"].includes(pos.ax) && ["start", "center", "end"].includes(pos.ay)
+            && Number.isFinite(pos.dx) && Number.isFinite(pos.dy);
+    }
+
+    function legacyCenter(gif, w, h) {
+        let anchorEl = null;
+        try {
+            anchorEl = document.querySelector(gif.anchor || GIF_DEFAULTS.anchor);
+        } catch (err) {
+            anchorEl = null;
+        }
+        let rect;
+        if (anchorEl) {
+            rect = anchorEl.getBoundingClientRect();
+            if (rect.width === 0) return null;
+        } else {
+            if (performance.now() - startedAt < LAYOUT.LEGACY_ANCHOR_WAIT_MS) return null;
+            rect = document.body.getBoundingClientRect();
+        }
+
+        if (Number.isFinite(gif.xPct) && Number.isFinite(gif.yPct)) {
+            return { x: rect.left + rect.width * gif.xPct, y: rect.top + rect.height * gif.yPct };
+        }
+        if (Number.isFinite(gif.x) && Number.isFinite(gif.y)) {
+            const left = rect.left + gif.x;
+            const bottom = (window.innerHeight - rect.bottom) + gif.y;
+            return { x: left + w / 2, y: window.innerHeight - bottom - h / 2 };
+        }
+        return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    }
+
+    function isDraggable(gif) {
+        return !(gif.attachedToProgress || gif.followMouse || gif.dvdBounce || gif.rainFall);
+    }
+
+    function applyInteraction(item) {
+        const { wrapper, borderBox, data: gif } = item;
+        if (!isEditMode) {
+            wrapper.style.pointerEvents = "none";
+            wrapper.style.cursor = "";
+            borderBox.style.outline = "none";
+            borderBox.style.background = "transparent";
+            return;
+        }
+
+        borderBox.style.background = "rgba(255, 255, 255, 0.1)";
+        if (isDraggable(gif)) {
+            wrapper.style.pointerEvents = "auto";
+            wrapper.style.cursor = "grab";
+            borderBox.style.outline = "2px dashed var(--spice-button)";
+        } else {
+            wrapper.style.pointerEvents = "none";
+            wrapper.style.cursor = "";
+            borderBox.style.outline = gif.followMouse ? "2px solid #0b96ff" : (gif.dvdBounce ? "2px solid #ffc500" : (gif.rainFall ? "2px solid #a855f7" : "2px solid #1ed760"));
+        }
+    }
+
+    function writeItemTransform(item) {
+        setStyle(item.wrapper, item.styleCache, "transform", `translate3d(${item.x}px, ${item.y}px, 0) ${item.effectTransform}`);
+    }
+
+    function startDrag(item, event) {
+        if (!isEditMode || !isDraggable(item.data) || event.button !== 0) return;
+        event.preventDefault();
+        item.dragging = true;
+        item.wrapper.style.cursor = "grabbing";
+        item.borderBox.style.transition = "none";
+
+        const activeModal = document.querySelector("generic-modal");
+        if (activeModal) {
+            activeModal.style.transition = "opacity 0.2s ease";
+            activeModal.style.opacity = "0.2";
+            activeModal.style.pointerEvents = "none";
+        }
+
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const originX = item.x;
+        const originY = item.y;
+
+        function onMouseMove(e) {
+            item.x = originX + (e.clientX - startX);
+            item.y = originY + (e.clientY - startY);
+            writeItemTransform(item);
+        }
+
+        function onMouseUp() {
+            document.removeEventListener("mousemove", onMouseMove);
+            item.dragging = false;
+            item.wrapper.style.cursor = "grab";
+            item.borderBox.style.transition = "outline 0.2s ease, box-shadow 0.2s ease";
+
+            if (activeModal) {
+                activeModal.style.opacity = "1";
+                activeModal.style.pointerEvents = "auto";
+            }
+
+            placeGifAt(item.data, item.x + item.w / 2, item.y + item.h / 2);
+            saveCurrentLayout();
+            requestRender();
+        }
+
+        document.addEventListener("mousemove", onMouseMove);
+        document.addEventListener("mouseup", onMouseUp, { once: true });
+    }
+
+    function createItem(gif) {
+        const { wrapper, img, borderBox } = createMediaWrapper(gif);
+        const item = {
+            id: gif.id,
+            url: gif.url,
+            data: gif,
+            wrapper,
+            realImg: img,
+            borderBox,
+            styleCache: {},
+            imgStyleCache: {},
+            natW: 0,
+            natH: 0,
+            x: 0,
+            y: 0,
+            w: 0,
+            h: 0,
+            effectTransform: "",
+            filter: "",
+            drops: [],
+            cloneEls: [],
+            rainSource: null,
+            rainMode: null
+        };
+        setStyle(wrapper, item.styleCache, "display", "none");
+
+        const onLoad = () => {
+            item.natW = img.naturalWidth || 1;
+            item.natH = img.naturalHeight || 1;
+            requestRender();
+        };
+        img.addEventListener("load", onLoad);
+        if (img.complete && img.naturalWidth) onLoad();
+
+        wrapper.addEventListener("mousedown", (event) => startDrag(item, event));
+        return item;
+    }
+
+    function destroyItem(item) {
+        item.destroyed = true;
+        item.wrapper.remove();
+        removeDomClones(item);
+        closeRainSource(item);
+    }
+
+    function renderGifs() {
+        const seenIds = new Set();
+        const nextItems = [];
+
+        savedGifs.forEach((gif) => {
+            if (!gif.id || seenIds.has(gif.id)) gif.id = newId();
+            seenIds.add(gif.id);
+
+            let item = renderedById.get(gif.id);
+            if (item && item.url !== gif.url) {
+                destroyItem(item);
+                item = null;
+            }
+            if (!item) {
+                item = createItem(gif);
+                renderedById.set(gif.id, item);
+            }
+            item.data = gif;
+            applyInteraction(item);
+            nextItems.push(item);
+        });
+
+        for (const [id, item] of renderedById) {
+            if (!seenIds.has(id)) {
+                destroyItem(item);
+                renderedById.delete(id);
+            }
+        }
+
+        let inOrder = true;
+        for (let i = 0; i < nextItems.length; i++) {
+            const wrapper = nextItems[i].wrapper;
+            if (!wrapper.isConnected) inOrder = false;
+            else if (i > 0 && nextItems[i - 1].wrapper.compareDocumentPosition(wrapper) & Node.DOCUMENT_POSITION_PRECEDING) inOrder = false;
+            if (!inOrder) break;
+        }
+        if (!inOrder) nextItems.forEach(item => document.body.appendChild(item.wrapper));
+
+        renderedItems = nextItems;
+        updateRainLayer();
+        requestRender();
+    }
+
+    function measureItem(item) {
+        if (!item.natW || !item.natH) return false;
+        const gif = item.data;
+        const crop = gif.crop || GIF_DEFAULTS.crop;
+        const fullW = gif.size || 50;
+        const fullH = fullW * item.natH / item.natW;
+        item.fullW = fullW;
+        item.cropL = fullW * (crop.l / 100);
+        item.cropT = fullH * (crop.t / 100);
+        item.w = Math.max(1, fullW - item.cropL - fullW * (crop.r / 100));
+        item.h = Math.max(1, fullH - item.cropT - fullH * (crop.b / 100));
+        return true;
+    }
 
     function updateFollowMouse(item, w, h, dt) {
         item.currentX = item.currentX !== undefined ? item.currentX : globalMouseX;
@@ -957,10 +1481,9 @@
         item.bobY = amp ? -Math.abs(Math.sin(item.stepPhase)) * PHYSICS.BOB_AMPLITUDE * amp : 0;
         item.wobbleRot = amp ? Math.sin(item.stepPhase) * PHYSICS.WOBBLE_ANGLE * amp : 0;
 
-        item.img.style.left = `${item.currentX - (w / 2)}px`;
-        item.img.style.top = `${item.currentY - (h / 2)}px`;
-        item.img.style.bottom = 'auto';
-        item.img.style.display = "block";
+        item.x = item.currentX - (w / 2);
+        item.y = item.currentY - (h / 2);
+        return true;
     }
 
     function updateDvdBounce(item, w, h, dt) {
@@ -989,152 +1512,444 @@
         if (item.currentY <= topBound) { item.currentY = topBound; item.dvdVy = Math.abs(item.dvdVy); }
         if (item.currentY >= bottomBound) { item.currentY = bottomBound; item.dvdVy = -Math.abs(item.dvdVy); }
 
-        item.img.style.left = `${item.currentX - w / 2}px`;
-        item.img.style.top = `${item.currentY - h / 2}px`;
-        item.img.style.bottom = 'auto';
-        item.img.style.display = "block";
+        item.x = item.currentX - w / 2;
+        item.y = item.currentY - h / 2;
+        return true;
+    }
+
+    function respawnRainDrop(drop, initial, hScaled) {
+        drop.rainX = Math.random() * window.innerWidth;
+        drop.rainY = initial ? -(Math.random() * window.innerHeight * 1.5) : -hScaled - (Math.random() * PHYSICS.RAIN_SPAWN_JITTER);
+        drop.rainSpeedMult = PHYSICS.RAIN_SPEED_RANGE.min + Math.random();
+        drop.rainScale = PHYSICS.RAIN_SCALE_RANGE.min + Math.random() * (PHYSICS.RAIN_SCALE_RANGE.max - PHYSICS.RAIN_SCALE_RANGE.min);
+        if (initial) {
+            drop.rainRotSpeed = (Math.random() - 0.5) * PHYSICS.RAIN_ROT_RANGE;
+            drop.rainRot = Math.random() * 360;
+        }
+    }
+
+    function stepRainDrop(drop, gif, h, dt) {
+        if (drop.rainY === undefined) respawnRainDrop(drop, true, 0);
+        const speed = (gif.rainSpeed || 5) * PHYSICS.RAIN_SPEED_MULT * drop.rainSpeedMult;
+        drop.rainY += speed * dt;
+        drop.rainRot = (drop.rainRot + drop.rainRotSpeed * dt) % 360;
+        const hScaled = h * drop.rainScale;
+        if (drop.rainY > window.innerHeight + hScaled) respawnRainDrop(drop, false, hScaled);
+    }
+
+    function rainCloneCount(gif) {
+        return clamp((parseInt(gif.rainCount) || 15) - 1, 0, LAYOUT.MAX_RAIN_COUNT - 1);
     }
 
     function updateRainFall(item, w, h, dt) {
-        if (item.rainY === undefined) {
-            item.rainX = Math.random() * window.innerWidth;
-            item.rainY = -(Math.random() * window.innerHeight * 1.5);
-            item.rainSpeedMult = PHYSICS.RAIN_SPEED_RANGE.min + Math.random();
-            item.rainRotSpeed = (Math.random() - 0.5) * PHYSICS.RAIN_ROT_RANGE;
-            item.rainRot = Math.random() * 360;
-            item.rainScale = PHYSICS.RAIN_SCALE_RANGE.min + Math.random() * (PHYSICS.RAIN_SCALE_RANGE.max - PHYSICS.RAIN_SCALE_RANGE.min);
-        }
+        const gif = item.data;
+        stepRainDrop(item, gif, h, dt);
+        item.x = item.rainX - (w / 2);
+        item.y = item.rainY - (h / 2);
+        item.currentX = item.rainX;
+        item.currentY = item.rainY;
 
-        const speed = (item.data.rainSpeed || 5) * PHYSICS.RAIN_SPEED_MULT * item.rainSpeedMult;
-        item.rainY += speed * dt;
-        item.rainRot += item.rainRotSpeed * dt;
-
-        const hScaled = h * item.rainScale;
-        if (item.rainY > window.innerHeight + hScaled) {
-            item.rainY = -hScaled - (Math.random() * PHYSICS.RAIN_SPAWN_JITTER);
-            item.rainX = Math.random() * window.innerWidth;
-            item.rainSpeedMult = PHYSICS.RAIN_SPEED_RANGE.min + Math.random();
-            item.rainScale = PHYSICS.RAIN_SCALE_RANGE.min + Math.random() * (PHYSICS.RAIN_SCALE_RANGE.max - PHYSICS.RAIN_SCALE_RANGE.min);
-        }
-
-        item.img.style.left = `${item.currentX = item.rainX - (w / 2)}px`;
-        item.img.style.top = `${item.currentY = item.rainY - (h / 2)}px`;
-        item.img.style.bottom = 'auto';
-        item.img.style.display = "block";
-
-        item.currentScaleX = (item.data.flipped ? -1 : 1) * item.rainScale;
-        item.currentSpin = item.rainRot;
+        const count = rainCloneCount(gif);
+        while (item.drops.length < count) item.drops.push({});
+        item.drops.length = count;
+        item.drops.forEach(drop => stepRainDrop(drop, gif, h, dt));
+        return true;
     }
 
-    function updateProgressAttach(item, w, h) {
-        const progBar = document.querySelector('[data-testid="playback-progressbar"]') || document.querySelector('.playback-bar');
-        if (progBar && Spicetify.Player && typeof Spicetify.Player.getDuration === "function" && Spicetify.Player.getDuration() > 0) {
-            const progRect = progBar.getBoundingClientRect();
-            const duration = Spicetify.Player.getDuration();
-            const progress = Spicetify.Player.getProgress();
-
-            let pct = progress / duration;
-            if (pct < 0) pct = 0;
-            if (pct > 1) pct = 1;
-
-            const centerTargetX = progRect.left + (progRect.width * pct);
-            const centerTargetY = progRect.top + (progRect.height / 2);
-
-            item.img.style.left = `${centerTargetX - (w / 2)}px`;
-            item.img.style.top = `${centerTargetY - (h / 2)}px`;
-            item.img.style.bottom = 'auto';
-            item.img.style.display = "block";
-        } else {
-            item.img.style.display = "none";
-        }
+    function updateProgressAttach(item, w, h, progress) {
+        if (!progress) return false;
+        item.x = progress.x - (w / 2);
+        item.y = progress.y - (h / 2);
+        return true;
     }
 
     function updateAnchorPosition(item, w, h) {
-        const anchorEl = document.querySelector(item.data.anchor) || document.body;
-        const rect = anchorEl.getBoundingClientRect();
-
-        if (rect.width === 0) {
-            item.img.style.display = "none";
-        } else {
-            item.img.style.display = "block";
-            if (item.data.xPct !== undefined) {
-                const centerTargetX = rect.left + (rect.width * item.data.xPct);
-                const centerTargetY = rect.top + (rect.height * item.data.yPct);
-
-                item.img.style.left = `${centerTargetX - (w / 2)}px`;
-                item.img.style.top = `${centerTargetY - (h / 2)}px`;
-                item.img.style.bottom = 'auto';
-            } else {
-                const screenLeft = rect.left + item.data.x;
-                const screenBottom = (window.innerHeight - rect.bottom) + item.data.y;
-                item.img.style.left = `${screenLeft}px`;
-                item.img.style.bottom = `${screenBottom}px`;
-                item.img.style.top = 'auto';
-            }
-        }
+        if (!item.data.pos) return false;
+        const center = resolveAnchoredCenter(item.data);
+        if (!center) return false;
+        item.x = center.x - (w / 2);
+        item.y = center.y - (h / 2);
+        return true;
     }
 
-    function updateVisualEffects(item, dt) {
-        let filterStr = "";
+    function stepVisualEffects(item, dt) {
+        const gif = item.data;
+        let animating = false;
 
-        if (item.data.tint) {
-            const hsl = hexToHSL(item.data.tintColor || "#e91e63");
-            const saturate = hsl.s * PHYSICS.TINT_SATURATE;
-            const brightness = hsl.l * 2;
-            filterStr += `grayscale(1) sepia(1) saturate(${saturate}) hue-rotate(${hsl.h - PHYSICS.TINT_HUE_OFFSET}deg) brightness(${brightness}) `;
+        let filter = "";
+        if (gif.tint) {
+            const color = gif.tintColor || "#e91e63";
+            if (item.tintColor !== color) {
+                item.tintColor = color;
+                item.tintFilter = buildTintFilter(color);
+            }
+            filter = item.tintFilter;
         }
-
-        if (item.data.rainbow) {
-            item.currentHueOffset = (item.currentHueOffset || 0) + ((item.data.rainbowSpeed || 5) * PHYSICS.RAINBOW_SPEED_MULT * dt);
-            filterStr += `hue-rotate(${item.currentHueOffset}deg) `;
+        if (gif.rainbow) {
+            item.currentHueOffset = ((item.currentHueOffset || 0) + ((gif.rainbowSpeed || 5) * PHYSICS.RAINBOW_SPEED_MULT * dt)) % 360;
+            filter += ` hue-rotate(${item.currentHueOffset}deg)`;
+            animating = true;
         } else {
             item.currentHueOffset = 0;
         }
+        item.filter = filter.trim();
 
-        if (item.realImg) {
-            item.realImg.style.filter = filterStr;
-        } else {
-            item.img.style.filter = filterStr;
-        }
-
-        if (item.data.spin) {
-            item.currentSpin = (item.currentSpin || 0) + ((item.data.spinSpeed || 5) * PHYSICS.SPIN_SPEED_MULT * dt);
+        if (gif.spin) {
+            item.currentSpin = ((item.currentSpin || 0) + ((gif.spinSpeed || 5) * PHYSICS.SPIN_SPEED_MULT * dt)) % 360;
+            animating = true;
         } else {
             item.currentSpin = 0;
         }
 
-        if (item.data.autoFlip) {
-            item.flipPhase = (item.flipPhase || 0) + ((item.data.flipSpeed || 5) * PHYSICS.FLIP_SPEED_MULT * dt);
-            item.currentScaleX = Math.cos(item.flipPhase);
-            if (item.data.flipped) item.currentScaleX *= -1;
+        const targetScaleX = gif.flipped ? -1 : 1;
+        if (gif.autoFlip) {
+            item.flipPhase = (item.flipPhase || 0) + ((gif.flipSpeed || 5) * PHYSICS.FLIP_SPEED_MULT * dt);
+            item.currentScaleX = Math.cos(item.flipPhase) * targetScaleX;
+            animating = true;
         } else {
-            if (item.currentScaleX === undefined) item.currentScaleX = item.data.flipped ? -1 : 1;
-            const targetScaleX = item.data.flipped ? -1 : 1;
-            item.currentScaleX += (targetScaleX - item.currentScaleX) * (1 - Math.pow(PHYSICS.FLIP_SNAP_SMOOTHING, dt));
+            if (item.currentScaleX === undefined) item.currentScaleX = targetScaleX;
+            const diff = targetScaleX - item.currentScaleX;
+            if (Math.abs(diff) > PHYSICS.FLIP_SNAP_EPSILON) {
+                item.currentScaleX += diff * (1 - Math.pow(PHYSICS.FLIP_SNAP_SMOOTHING, dt));
+                animating = true;
+            } else {
+                item.currentScaleX = targetScaleX;
+            }
         }
 
-        let beatScaleMult = 1;
-        if (item.data.beatSync && globalBeatScale !== undefined) {
+        item.beatScale = 1;
+        if (gif.beatSync) {
             const minStrength = 0.05;
-            const strength = Math.max(minStrength, (item.data.beatSyncStrength || 5) * 0.05);
-            beatScaleMult += (globalBeatScale * strength);
+            const strength = Math.max(minStrength, (gif.beatSyncStrength || 5) * 0.05);
+            item.beatScale += (globalBeatScale * strength);
+            animating = true;
         }
 
-        const rot = (item.data.rotation || 0) + (item.currentSpin || 0) + (item.wobbleRot || 0);
+        return animating;
+    }
+
+    function dropScale(item, drop) {
+        const scale = (drop.rainScale || 1) * item.beatScale;
+        return { sx: item.currentScaleX * scale, sy: scale, rot: (item.data.rotation || 0) + item.currentSpin + (drop.rainRot || 0) };
+    }
+
+    function updateItem(item, dt, frame) {
+        const gif = item.data;
+        const cache = item.styleCache;
+
+        if (gif.visible === false || !measureItem(item)) {
+            setStyle(item.wrapper, cache, "display", "none");
+            hideDomClones(item);
+            return false;
+        }
+        if (item.dragging) return false;
+
+        const w = item.w;
+        const h = item.h;
+        item.bobY = 0;
+        item.wobbleRot = 0;
+
+        let moving = false;
+        let shown = true;
+        if (gif.followMouse) {
+            moving = updateFollowMouse(item, w, h, dt);
+        } else if (gif.dvdBounce) {
+            moving = updateDvdBounce(item, w, h, dt);
+        } else if (gif.rainFall) {
+            moving = updateRainFall(item, w, h, dt);
+        } else if (gif.attachedToProgress) {
+            shown = updateProgressAttach(item, w, h, frame.progress);
+            moving = true;
+        } else {
+            shown = updateAnchorPosition(item, w, h);
+        }
+
+        if (!gif.rainFall) {
+            closeRainSource(item);
+            removeDomClones(item);
+            item.drops.length = 0;
+        }
+
+        if (!shown) {
+            setStyle(item.wrapper, cache, "display", "none");
+            return moving;
+        }
+
+        const animating = stepVisualEffects(item, dt);
+
+        let sx, sy, rot;
+        if (gif.rainFall) {
+            ({ sx, sy, rot } = dropScale(item, item));
+        } else {
+            sx = item.currentScaleX * item.beatScale;
+            sy = item.beatScale;
+            rot = (gif.rotation || 0) + item.currentSpin + item.wobbleRot;
+        }
         const bobbing = item.bobY ? `translateY(${item.bobY}px) ` : "";
-        item.img.style.transform = `${bobbing}scaleX(${item.currentScaleX * beatScaleMult}) scaleY(${beatScaleMult}) rotate(${rot}deg)`;
+        item.effectTransform = `${bobbing}scaleX(${sx}) scaleY(${sy}) rotate(${rot}deg)`;
+
+        setStyle(item.wrapper, cache, "display", "block");
+        setStyle(item.wrapper, cache, "opacity", String(gif.opacity));
+        setStyle(item.wrapper, cache, "width", `${w}px`);
+        setStyle(item.wrapper, cache, "height", `${h}px`);
+        setStyle(item.realImg, item.imgStyleCache, "width", `${item.fullW}px`);
+        setStyle(item.realImg, item.imgStyleCache, "marginLeft", `-${item.cropL}px`);
+        setStyle(item.realImg, item.imgStyleCache, "marginTop", `-${item.cropT}px`);
+        setStyle(item.realImg, item.imgStyleCache, "filter", item.filter);
+        writeItemTransform(item);
+
+        if (gif.rainFall) updateRainClones(item, frame.now);
+
+        return moving || animating;
+    }
+
+    const rainLayer = { canvas: null, ctx: null, dpr: 1 };
+
+    function resizeRainCanvas() {
+        if (!rainLayer.canvas) return;
+        rainLayer.dpr = window.devicePixelRatio || 1;
+        rainLayer.canvas.width = Math.round(window.innerWidth * rainLayer.dpr);
+        rainLayer.canvas.height = Math.round(window.innerHeight * rainLayer.dpr);
+    }
+
+    function updateRainLayer() {
+        const needed = renderedItems.some(item => item.data.rainFall && item.data.visible !== false && rainCloneCount(item.data) > 0);
+        if (needed && !rainLayer.canvas) {
+            const canvas = document.createElement("canvas");
+            canvas.className = "adhdfy-rain-canvas";
+            document.body.appendChild(canvas);
+            rainLayer.canvas = canvas;
+            rainLayer.ctx = canvas.getContext("2d");
+            resizeRainCanvas();
+        } else if (!needed && rainLayer.canvas) {
+            rainLayer.canvas.remove();
+            rainLayer.canvas = null;
+            rainLayer.ctx = null;
+        }
+    }
+
+    function guessMimeType(url) {
+        const type = getMediaType(url);
+        return { GIF: "image/gif", WEBP: "image/webp", PNG: "image/png", JPG: "image/jpeg" }[type] || "";
+    }
+
+    async function createFrameSource(url) {
+        if (typeof ImageDecoder === "undefined") return null;
+        const blob = await getMediaBlob(url);
+        if (!blob) return null;
+        const type = blob.type || guessMimeType(url);
+        if (!type || !(await ImageDecoder.isTypeSupported(type))) return null;
+
+        const decoder = new ImageDecoder({ data: await blob.arrayBuffer(), type });
+        await decoder.tracks.ready;
+        await decoder.completed;
+        const first = await decoder.decode({ frameIndex: 0 });
+        return {
+            decoder,
+            frame: first.image,
+            index: 0,
+            count: decoder.tracks.selectedTrack.frameCount || 1,
+            shownAt: performance.now(),
+            decoding: false,
+            closed: false
+        };
+    }
+
+    function frameDurationMs(frame) {
+        const ms = (frame.duration || 0) / 1000;
+        return ms <= 10 ? 100 : ms;
+    }
+
+    function advanceFrameSource(src, now) {
+        if (src.count <= 1 || src.decoding || src.closed) return;
+        const duration = frameDurationMs(src.frame);
+        if (now - src.shownAt < duration) return;
+
+        src.decoding = true;
+        const nextIndex = (src.index + 1) % src.count;
+        src.decoder.decode({ frameIndex: nextIndex })
+            .then(result => {
+                if (src.closed) {
+                    result.image.close();
+                    return;
+                }
+                src.frame.close();
+                src.frame = result.image;
+                src.index = nextIndex;
+                src.shownAt = now - src.shownAt > duration * 4 ? performance.now() : src.shownAt + duration;
+                src.decoding = false;
+            })
+            .catch(() => {
+                src.decoding = false;
+                src.count = 1;
+            });
+    }
+
+    function ensureRainSource(item) {
+        if (item.rainSource || item.rainMode) return;
+        item.rainMode = "loading";
+        createFrameSource(item.url)
+            .then(src => {
+                if (item.destroyed || item.rainMode !== "loading") {
+                    if (src) closeFrameSource(src);
+                    return;
+                }
+                item.rainSource = src;
+                item.rainMode = src ? "canvas" : "dom";
+                requestRender();
+            })
+            .catch(err => {
+                if (item.rainMode !== "loading") return;
+                console.warn("ADHDfy: Rain Fall falls back to DOM copies for this image", err);
+                item.rainMode = "dom";
+                requestRender();
+            });
+    }
+
+    function closeFrameSource(src) {
+        src.closed = true;
+        try {
+            src.frame?.close();
+            src.decoder?.close();
+        } catch (err) { }
+    }
+
+    function closeRainSource(item) {
+        if (item.rainSource) closeFrameSource(item.rainSource);
+        item.rainSource = null;
+        item.rainMode = null;
+        item.sprite = null;
+        item.spriteKey = null;
+    }
+
+    function updateRainClones(item, now) {
+        if (item.drops.length === 0) {
+            removeDomClones(item);
+            return;
+        }
+        ensureRainSource(item);
+        if (item.rainMode === "canvas") {
+            advanceFrameSource(item.rainSource, now);
+            removeDomClones(item);
+        } else if (item.rainMode === "dom") {
+            updateDomClones(item);
+        }
+    }
+
+    function updateDomClones(item) {
+        while (item.cloneEls.length < item.drops.length) {
+            const clone = createMediaWrapper(item.data, true);
+            clone.styleCache = {};
+            clone.imgStyleCache = {};
+            document.body.appendChild(clone.wrapper);
+            item.cloneEls.push(clone);
+        }
+        while (item.cloneEls.length > item.drops.length) item.cloneEls.pop().wrapper.remove();
+
+        item.cloneEls.forEach((clone, i) => {
+            const drop = item.drops[i];
+            const { sx, sy, rot } = dropScale(item, drop);
+            setStyle(clone.wrapper, clone.styleCache, "display", "block");
+            setStyle(clone.wrapper, clone.styleCache, "opacity", String(item.data.opacity));
+            setStyle(clone.wrapper, clone.styleCache, "width", `${item.w}px`);
+            setStyle(clone.wrapper, clone.styleCache, "height", `${item.h}px`);
+            setStyle(clone.img, clone.imgStyleCache, "width", `${item.fullW}px`);
+            setStyle(clone.img, clone.imgStyleCache, "marginLeft", `-${item.cropL}px`);
+            setStyle(clone.img, clone.imgStyleCache, "marginTop", `-${item.cropT}px`);
+            setStyle(clone.img, clone.imgStyleCache, "filter", item.filter);
+            setStyle(clone.wrapper, clone.styleCache, "transform",
+                `translate3d(${drop.rainX - item.w / 2}px, ${drop.rainY - item.h / 2}px, 0) scaleX(${sx}) scaleY(${sy}) rotate(${rot}deg)`);
+        });
+    }
+
+    function hideDomClones(item) {
+        item.cloneEls.forEach(clone => setStyle(clone.wrapper, clone.styleCache, "display", "none"));
+    }
+
+    function removeDomClones(item) {
+        item.cloneEls.forEach(clone => clone.wrapper.remove());
+        item.cloneEls = [];
+    }
+
+    function getRainSprite(item, src) {
+        const crop = item.data.crop || GIF_DEFAULTS.crop;
+        const scale = rainLayer.dpr * LAYOUT.RAIN_SPRITE_SCALE;
+        const spriteW = clamp(Math.round(item.w * scale), 1, LAYOUT.RAIN_SPRITE_MAX);
+        const spriteH = clamp(Math.round(item.h * scale), 1, LAYOUT.RAIN_SPRITE_MAX);
+        const key = `${src.index}|${item.filter}|${spriteW}x${spriteH}|${crop.t},${crop.r},${crop.b},${crop.l}`;
+        if (item.sprite && item.spriteKey === key) return item.sprite;
+
+        if (!item.sprite) item.sprite = document.createElement("canvas");
+        const sprite = item.sprite;
+        if (sprite.width !== spriteW) sprite.width = spriteW;
+        if (sprite.height !== spriteH) sprite.height = spriteH;
+        const sctx = sprite.getContext("2d");
+        const fw = src.frame.displayWidth;
+        const fh = src.frame.displayHeight;
+        sctx.clearRect(0, 0, spriteW, spriteH);
+        sctx.filter = item.filter || "none";
+        sctx.drawImage(src.frame,
+            fw * crop.l / 100, fh * crop.t / 100, fw * (100 - crop.l - crop.r) / 100, fh * (100 - crop.t - crop.b) / 100,
+            0, 0, spriteW, spriteH);
+        sctx.filter = "none";
+        item.spriteKey = key;
+        return sprite;
+    }
+
+    function drawRainCanvas() {
+        const { canvas, ctx, dpr } = rainLayer;
+        if (!ctx) return;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (const item of renderedItems) {
+            const gif = item.data;
+            if (!gif.rainFall || gif.visible === false || item.rainMode !== "canvas" || !item.rainSource || !item.w) continue;
+            const sprite = getRainSprite(item, item.rainSource);
+            const halfW = item.w / 2;
+            const halfH = item.h / 2;
+            ctx.globalAlpha = gif.opacity;
+            for (const drop of item.drops) {
+                const { sx, sy, rot } = dropScale(item, drop);
+                const rad = rot * Math.PI / 180;
+                const cos = Math.cos(rad);
+                const sin = Math.sin(rad);
+                ctx.setTransform(sx * cos * dpr, sy * sin * dpr, -sx * sin * dpr, sy * cos * dpr, drop.rainX * dpr, drop.rainY * dpr);
+                ctx.drawImage(sprite, -halfW, -halfH, item.w, item.h);
+            }
+        }
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalAlpha = 1;
     }
 
     let currentAudioBeats = [];
     let currentBeatIndex = 0;
+    let beatsUri = null;
+    let beatsRequestId = 0;
+    let globalBeatScale = 0;
+    let audioPulseValue = 0;
+    let audioPulseVelocity = 0;
+    let lastTrackedBeatIndex = -1;
+
+    function currentTrackUri() {
+        return Spicetify.Player?.data?.item?.uri || Spicetify.Player?.data?.track?.uri || "";
+    }
+
+    function anyBeatSync() {
+        return savedGifs.some(gif => gif.beatSync && gif.visible !== false);
+    }
 
     async function fetchAudioBeats() {
+        const uri = currentTrackUri();
+        if (uri === beatsUri || !anyBeatSync()) return;
+        beatsUri = uri;
+        const requestId = ++beatsRequestId;
+        currentAudioBeats = [];
+        currentBeatIndex = 0;
+        lastTrackedBeatIndex = -1;
+        if (!uri || uri.includes("local")) return;
+
         try {
-            const uri = Spicetify.Player?.data?.item?.uri || Spicetify.Player?.data?.track?.uri;
-            if (!uri || uri.includes("local")) {
-                currentAudioBeats = [];
-                return;
-            }
             let data = null;
             if (typeof Spicetify.getAudioData === 'function') {
                 data = await Spicetify.getAudioData(uri);
@@ -1142,56 +1957,30 @@
                 const id = uri.split(":")[2];
                 data = await Spicetify.CosmosAsync.get(`wg://audio-attributes/v1/audio-analysis/${id}`);
             }
-            currentAudioBeats = data?.beats || [];
-            currentBeatIndex = 0;
+            if (requestId === beatsRequestId) currentAudioBeats = data?.beats || [];
         } catch (err) {
-            currentAudioBeats = [];
+            if (requestId === beatsRequestId) currentAudioBeats = [];
         }
     }
 
     if (Spicetify.Player) {
-        Spicetify.Player.addEventListener("songchange", fetchAudioBeats);
-        fetchAudioBeats();
+        Spicetify.Player.addEventListener("songchange", () => fetchAudioBeats());
     }
 
-    let lastTime = performance.now();
-    let audioPulseValue = 0;
-    let audioPulseVelocity = 0;
-    let lastTrackedBeatIndex = -1;
-
-    let lastFetchedUri = "";
-
-    function trackAnchors(timestamp, isSyncUpdate = false) {
-        if (!timestamp) timestamp = performance.now();
-        let dt = (timestamp - lastTime) / (1000 / 60);
-        if (dt > PHYSICS.DT_MAX) dt = PHYSICS.DT_MAX;
-        if (dt < 0) dt = 0;
-        lastTime = timestamp;
-
-        if (Spicetify.Player) {
-            const currentUri = Spicetify.Player.data?.item?.uri || Spicetify.Player.data?.track?.uri;
-            if (currentUri && currentUri !== lastFetchedUri) {
-                lastFetchedUri = currentUri;
-                fetchAudioBeats();
-            }
-        }
+    function updateBeatPulse(dt) {
+        if (currentTrackUri() !== beatsUri) fetchAudioBeats();
 
         try {
             if (currentAudioBeats.length > 0 && Spicetify.Player) {
-                const positionMs = Spicetify.Player.getProgress();
-                const positionSec = positionMs / 1000;
+                const positionSec = Spicetify.Player.getProgress() / 1000;
 
-                if (currentBeatIndex >= currentAudioBeats.length) currentBeatIndex = currentAudioBeats.length - 1;
-                if (currentBeatIndex < 0) currentBeatIndex = 0;
-
+                currentBeatIndex = clamp(currentBeatIndex, 0, currentAudioBeats.length - 1);
                 while (currentBeatIndex < currentAudioBeats.length - 1 && positionSec >= currentAudioBeats[currentBeatIndex].start + currentAudioBeats[currentBeatIndex].duration) {
                     currentBeatIndex++;
                 }
                 while (currentBeatIndex > 0 && positionSec < currentAudioBeats[currentBeatIndex].start) {
                     currentBeatIndex--;
                 }
-
-                if (currentBeatIndex >= currentAudioBeats.length) currentBeatIndex = currentAudioBeats.length - 1;
 
                 const BEAT_LOOKAHEAD = 0.08;
                 let targetBeatIndex = currentBeatIndex;
@@ -1207,7 +1996,7 @@
                 if (targetBeat && positionSec >= targetBeat.start - BEAT_LOOKAHEAD) {
                     if (targetBeatIndex !== lastTrackedBeatIndex) {
                         lastTrackedBeatIndex = targetBeatIndex;
-                        let conf = targetBeat.confidence || 0.5;
+                        const conf = targetBeat.confidence || 0.5;
                         audioPulseVelocity += 0.5 + (conf * 0.5);
                     }
                 }
@@ -1229,74 +2018,89 @@
             console.error("ADHDfy: audio physics error", err);
             globalBeatScale = 0;
         }
+    }
 
+    let frameRequested = false;
+    let lastFrameTime = null;
+    let legacyRetryTimer = null;
+    let progressBarEl = null;
 
-        renderedElements.forEach(item => {
-            try {
-                if (item.data.visible === false) {
-                    item.img.style.display = "none";
-                    return;
-                }
+    function requestRender() {
+        if (frameRequested) return;
+        frameRequested = true;
+        requestAnimationFrame(renderFrame);
+    }
 
-                if (item.img.style.display === "none") {
-                    item.img.style.display = "block";
-                }
+    function readProgressPoint() {
+        if (!progressBarEl || !progressBarEl.isConnected) {
+            progressBarEl = document.querySelector('[data-testid="playback-progressbar"]') || document.querySelector('.playback-bar');
+        }
+        if (!progressBarEl || !Spicetify.Player || typeof Spicetify.Player.getDuration !== "function") return null;
+        const duration = Spicetify.Player.getDuration();
+        if (!(duration > 0)) return null;
+        const rect = progressBarEl.getBoundingClientRect();
+        const pct = clamp(Spicetify.Player.getProgress() / duration, 0, 1);
+        return { x: rect.left + (rect.width * pct), y: rect.top + (rect.height / 2) };
+    }
 
-                if (item.img.dataset.dragging === "true") return;
-
-                const origW = item.data.size;
-                const origH = item.realImg.offsetHeight;
-                let w = origW;
-                let h = origH;
-
-                if (origH) {
-                    const crop = item.data.crop || { t: 0, r: 0, b: 0, l: 0 };
-                    const cropL_px = origW * (crop.l / 100);
-                    const cropT_px = origH * (crop.t / 100);
-                    const cropR_px = origW * (crop.r / 100);
-                    const cropB_px = origH * (crop.b / 100);
-
-                    w = origW - cropL_px - cropR_px;
-                    h = origH - cropT_px - cropB_px;
-
-                    item.img.style.width = `${w}px`;
-                    item.img.style.height = `${h}px`;
-
-                    item.realImg.style.marginLeft = `-${cropL_px}px`;
-                    item.realImg.style.marginTop = `-${cropT_px}px`;
-                } else {
-                    w = item.img.offsetWidth || item.oldW || item.data.size;
-                    h = item.img.offsetHeight || item.oldH || item.data.size;
-                }
-
-                item.bobY = 0;
-                item.wobbleRot = 0;
-
-                if (item.data.followMouse) {
-                    updateFollowMouse(item, w, h, dt);
-                } else if (item.data.dvdBounce) {
-                    updateDvdBounce(item, w, h, dt);
-                } else if (item.data.rainFall) {
-                    updateRainFall(item, w, h, dt);
-                } else if (item.data.attachedToProgress) {
-                    updateProgressAttach(item, w, h);
-                } else {
-                    updateAnchorPosition(item, w, h);
-                }
-
-                updateVisualEffects(item, dt);
-            } catch (err) {
-                console.error("ADHDfy: trackAnchors render loop error for element", err);
+    function migrateLegacyPositions() {
+        let migrated = false;
+        let waiting = false;
+        for (const item of renderedItems) {
+            const gif = item.data;
+            if (isValidPos(gif.pos) || !measureItem(item)) continue;
+            const center = legacyCenter(gif, item.w, item.h);
+            if (!center) {
+                waiting = true;
+                continue;
             }
-        });
-
-        if (!isSyncUpdate) {
-            requestAnimationFrame(trackAnchors);
+            gif.pos = computePosAt(center.x, center.y);
+            migrated = true;
+        }
+        if (migrated) saveCurrentLayout();
+        if (waiting && !legacyRetryTimer) {
+            legacyRetryTimer = setTimeout(() => {
+                legacyRetryTimer = null;
+                requestRender();
+            }, LAYOUT.LEGACY_RETRY_MS);
         }
     }
-    trackAnchors();
 
-    // UI Helpers
+    function renderFrame(timestamp) {
+        frameRequested = false;
+        let dt = lastFrameTime === null ? 1 : (timestamp - lastFrameTime) / (1000 / 60);
+        dt = clamp(dt, 0, PHYSICS.DT_MAX);
+        lastFrameTime = timestamp;
+
+        let animating = false;
+        try {
+            if (regionsDirty) {
+                refreshRegionElements();
+                readRegionRects();
+                regionsDirty = false;
+            }
+            migrateLegacyPositions();
+            const visibleItems = renderedItems.filter(item => item.data.visible !== false);
+            const progress = visibleItems.some(item => item.data.attachedToProgress) ? readProgressPoint() : null;
+            if (visibleItems.some(item => item.data.beatSync)) updateBeatPulse(dt);
+            else globalBeatScale = 0;
+
+            const frame = { progress, now: timestamp };
+            for (const item of renderedItems) {
+                try {
+                    if (updateItem(item, dt, frame)) animating = true;
+                } catch (err) {
+                    console.error("ADHDfy: render error for element", err);
+                }
+            }
+            drawRainCanvas();
+        } catch (err) {
+            console.error("ADHDfy: render loop error", err);
+        }
+
+        if (animating) requestRender();
+        else lastFrameTime = null;
+    }
 
     function createButton(text, variant = "primary") {
         const btn = document.createElement("button");
@@ -1304,8 +2108,6 @@
         btn.className = `adhdfy-btn adhdfy-btn--${variant}`;
         return btn;
     }
-
-    // Cropper Overlay
 
     function openCropperOverlay(gif, onSave) {
         const overlay = document.createElement("div");
@@ -1520,9 +2322,6 @@
         updatePreview();
     }
 
-    // Modal DOM Factory
-
-
     let modalContent, presetForm, addForm, listContainer, mainModalContainer, infoContent;
     let toggleAllBtn, deleteAllBtn;
 
@@ -1545,15 +2344,32 @@
         slotControls.style.flexWrap = "wrap";
 
         const exportBtn = createButton("Save", "primary");
-        exportBtn.onclick = () => {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(savedGifs, null, 2));
-            const dlAnchorElem = document.createElement('a');
-            dlAnchorElem.setAttribute("href", dataStr);
-            dlAnchorElem.setAttribute("download", `adhdfy_${activeSlot}.json`);
-            document.body.appendChild(dlAnchorElem);
-            dlAnchorElem.click();
-            dlAnchorElem.remove();
-            showCustomNotification("Layout Exported!");
+        exportBtn.onclick = async () => {
+            try {
+                const exported = [];
+                for (const gif of savedGifs) {
+                    const copy = { ...gif };
+                    delete copy.uiEffectsOpen;
+                    if (isStoredMedia(copy.url)) {
+                        const blob = await loadMediaBlob(mediaIdOf(copy.url));
+                        if (blob) copy.url = await blobToDataUrl(blob);
+                        delete copy.mime;
+                    }
+                    exported.push(copy);
+                }
+                const blobUrl = URL.createObjectURL(new Blob([JSON.stringify(exported, null, 2)], { type: "application/json" }));
+                const dlAnchorElem = document.createElement('a');
+                dlAnchorElem.setAttribute("href", blobUrl);
+                dlAnchorElem.setAttribute("download", `adhdfy_${activeSlot}.json`);
+                document.body.appendChild(dlAnchorElem);
+                dlAnchorElem.click();
+                dlAnchorElem.remove();
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+                showCustomNotification("Layout Exported!");
+            } catch (err) {
+                console.error("ADHDfy: export failed", err);
+                showCustomNotification("Failed to export layout", true);
+            }
         };
 
         const importBtn = createButton("Load", "primary");
@@ -1562,43 +2378,103 @@
         fileInput.accept = ".json";
         fileInput.style.display = "none";
 
-        fileInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const parsed = JSON.parse(event.target.result);
-                    if (Array.isArray(parsed)) {
-                        let newName = file.name.replace(/\.json$/i, "");
+        function sanitizeNumber(value, min, max, fallback) {
+            const num = parseFloat(value);
+            return Number.isFinite(num) ? clamp(num, min, max) : fallback;
+        }
 
-                        let counter = 1;
-                        let baseName = newName;
-                        while (slotIndex.includes(newName)) {
-                            newName = `${baseName} (${counter})`;
-                            counter++;
-                        }
-
-                        slotIndex.unshift(newName);
-                        Spicetify.LocalStorage.set("adhdfy-slot-index", JSON.stringify(slotIndex));
-                        activeSlot = newName;
-                        Spicetify.LocalStorage.set("adhdfy-slot-active", activeSlot);
-
-                        savedGifs = parsed;
-                        saveCurrentLayout();
-                        populateDropdown();
-                        renderGifs();
-                        updateListUI();
-                        showCustomNotification(`Imported as: ${newName}`);
-                    } else {
-                        showCustomNotification("Invalid layout format.", true);
-                    }
-                } catch (err) {
-                    showCustomNotification("Failed to parse JSON", true);
-                }
+        function sanitizeImportedGif(raw) {
+            if (!raw || typeof raw !== "object" || typeof raw.url !== "string" || !raw.url.trim()) return null;
+            const gif = applyDefaults({ ...raw, id: undefined });
+            gif.url = raw.url.trim();
+            gif.size = Math.round(sanitizeNumber(raw.size, 10, 500, 50));
+            gif.opacity = sanitizeNumber(raw.opacity, 0.1, 1, 1);
+            gif.rotation = sanitizeNumber(raw.rotation, 0, 360, 0);
+            ["rainbowSpeed", "spinSpeed", "flipSpeed", "dvdSpeed", "rainSpeed", "beatSyncStrength"].forEach(key => {
+                gif[key] = sanitizeNumber(raw[key], 1, 30, GIF_DEFAULTS[key]);
+            });
+            gif.rainCount = Math.round(sanitizeNumber(raw.rainCount, 1, LAYOUT.MAX_RAIN_COUNT, GIF_DEFAULTS.rainCount));
+            ["flipped", "visible", "tint", "rainbow", "spin", "autoFlip", "attachedToProgress", "followMouse", "dvdBounce", "rainFall", "beatSync"].forEach(key => {
+                gif[key] = raw[key] === undefined ? GIF_DEFAULTS[key] : Boolean(raw[key]);
+            });
+            if (typeof raw.tintColor !== "string" || !/^#[0-9a-f]{6}$/i.test(raw.tintColor)) gif.tintColor = GIF_DEFAULTS.tintColor;
+            const crop = raw.crop && typeof raw.crop === "object" ? raw.crop : {};
+            gif.crop = {
+                t: sanitizeNumber(crop.t, 0, 98, 0),
+                r: sanitizeNumber(crop.r, 0, 98, 0),
+                b: sanitizeNumber(crop.b, 0, 98, 0),
+                l: sanitizeNumber(crop.l, 0, 98, 0)
             };
-            reader.readAsText(file);
+            if (typeof raw.anchor !== "string") gif.anchor = GIF_DEFAULTS.anchor;
+            if (!isValidPos(raw.pos)) delete gif.pos;
+            ["xPct", "yPct", "x", "y"].forEach(key => {
+                if (!Number.isFinite(raw[key])) delete gif[key];
+            });
+            delete gif.mime;
+            delete gif.uiEffectsOpen;
+            return gif;
+        }
+
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
             fileInput.value = "";
+            if (!file) return;
+
+            let parsed;
+            try {
+                parsed = JSON.parse(await file.text());
+            } catch (err) {
+                showCustomNotification("Failed to parse JSON", true);
+                return;
+            }
+            if (!Array.isArray(parsed)) {
+                showCustomNotification("Invalid layout format.", true);
+                return;
+            }
+
+            const imported = parsed.map(sanitizeImportedGif).filter(Boolean);
+            if (imported.length < parsed.length) {
+                showCustomNotification(`Skipped ${parsed.length - imported.length} broken item(s).`, true);
+            }
+
+            mediaOpsInFlight++;
+            try {
+                const cache = new Map();
+                for (const gif of imported) {
+                    try {
+                        await storeInlineMedia(gif, cache);
+                    } catch (err) {
+                        console.warn("ADHDfy: keeping imported media inline", err);
+                    }
+                }
+
+                flushSave();
+                let newName = file.name.replace(/\.json$/i, "");
+
+                let counter = 1;
+                let baseName = newName;
+                while (slotIndex.includes(newName)) {
+                    newName = `${baseName} (${counter})`;
+                    counter++;
+                }
+
+                slotIndex.unshift(newName);
+                Spicetify.LocalStorage.set("adhdfy-slot-index", JSON.stringify(slotIndex));
+                activeSlot = newName;
+                Spicetify.LocalStorage.set("adhdfy-slot-active", activeSlot);
+
+                savedGifs = imported;
+                saveCurrentLayout(true);
+                populateDropdown();
+                renderGifs();
+                updateListUI();
+                showCustomNotification(`Imported as: ${newName}`);
+            } catch (err) {
+                console.error("ADHDfy: import failed", err);
+                showCustomNotification("Failed to import layout", true);
+            } finally {
+                mediaOpsInFlight--;
+            }
         };
         importBtn.onclick = () => fileInput.click();
 
@@ -1636,11 +2512,12 @@
                     showCustomNotification("Layout name already exists!", true);
                     return;
                 }
+                flushSave();
                 slotIndex.push(name);
                 Spicetify.LocalStorage.set("adhdfy-slot-index", JSON.stringify(slotIndex));
                 activeSlot = name;
                 Spicetify.LocalStorage.set("adhdfy-slot-active", activeSlot);
-                saveCurrentLayout();
+                saveCurrentLayout(true);
                 populateDropdown();
                 showCustomNotification(`Switched to new layout: ${name}`);
                 overlay.remove();
@@ -1677,9 +2554,10 @@
         populateDropdown();
 
         slotDropdown.onchange = (e) => {
+            flushSave();
             activeSlot = e.target.value;
             Spicetify.LocalStorage.set("adhdfy-slot-active", activeSlot);
-            savedGifs = JSON.parse(Spicetify.LocalStorage.get(`adhdfy-layout-${activeSlot}`) || "[]").map(applyDefaults);
+            savedGifs = loadLayout(activeSlot);
             renderGifs();
             updateListUI();
         };
@@ -1722,6 +2600,7 @@
                     return;
                 }
 
+                flushSave();
                 const layoutData = Spicetify.LocalStorage.get(`adhdfy-layout-${activeSlot}`);
                 Spicetify.LocalStorage.set(`adhdfy-layout-${newName}`, layoutData || "[]");
                 Spicetify.LocalStorage.remove(`adhdfy-layout-${activeSlot}`);
@@ -1785,15 +2664,20 @@
             const confirmBtn = createButton("Delete", "danger");
             confirmBtn.classList.add("adhdfy-btn--lg");
             confirmBtn.onclick = () => {
+                if (saveTimer) {
+                    clearTimeout(saveTimer);
+                    saveTimer = null;
+                }
                 Spicetify.LocalStorage.remove(`adhdfy-layout-${activeSlot}`);
                 slotIndex = slotIndex.filter(s => s !== activeSlot);
                 Spicetify.LocalStorage.set("adhdfy-slot-index", JSON.stringify(slotIndex));
                 activeSlot = slotIndex[0];
                 Spicetify.LocalStorage.set("adhdfy-slot-active", activeSlot);
-                savedGifs = JSON.parse(Spicetify.LocalStorage.get(`adhdfy-layout-${activeSlot}`) || "[]").map(applyDefaults);
+                savedGifs = loadLayout(activeSlot);
                 populateDropdown();
                 renderGifs();
                 updateListUI();
+                scheduleMediaCleanup();
                 overlay.remove();
             };
 
@@ -1896,6 +2780,7 @@
                 saveCurrentLayout();
                 renderGifs();
                 updateListUI();
+                scheduleMediaCleanup();
                 overlay.remove();
             };
 
@@ -1936,8 +2821,9 @@
 
         infoContent.innerHTML = `
             <p style="margin: 0;">Add your gifs or images by pasting a link, uploading a local file, or searching gifs with GIPHY.</p>
-            <p style="margin: 0;"><strong>Important:</strong> Local uploads have a strict 2.5MB limit due to Spotify constraints. For unlimited file sizes, it's best to add your media using direct links or the search tool instead.</p>
+            <p style="margin: 0;">Local uploads are stored inside Spotify, so very large files can take more memory. For huge GIFs, direct links or the search tool are a lighter choice.</p>
             <p style="margin: 0;">Once added, you can move the images anywhere on the screen by dragging them around while this menu is open.</p>
+            <p style="margin: 0;">Each image sticks to the part of Spotify you drop it on (sidebar, main view, player bar...), so it stays in place when you resize the window.</p>
             <p style="margin: 0;">Tweak the look with sliders to adjust the size, opacity, and rotation of your media.</p>
             <p style="margin: 0;">Use the buttons to easily hide, crop, flip, duplicate, or delete your items.</p>
             <p style="margin: 0;">Turn on motion effects like Rainbow, Auto-Spin, DVD Bounce, Prog Bar tracking, or Rain Fall.</p>
@@ -1948,8 +2834,6 @@
         mainModalContainer.appendChild(infoContent);
     }
 
-
-    // Card UI Factories
 
     function createSlider(label, min, max, step, value, unit, onChange) {
         const wrapper = document.createElement("div");
@@ -2027,9 +2911,13 @@
 
             const exclusives = ["attachedToProgress", "followMouse", "dvdBounce", "rainFall"];
             if (exclusives.includes(activeField)) {
+                const changed = new Set([gif]);
                 if (!gif[activeField]) {
                     if (activeField === "attachedToProgress" || activeField === "followMouse") {
-                        savedGifs.forEach(g => g[activeField] = false);
+                        savedGifs.forEach(g => {
+                            if (g[activeField]) changed.add(g);
+                            g[activeField] = false;
+                        });
                     }
                     exclusives.forEach(ef => gif[ef] = false);
                     gif[activeField] = true;
@@ -2038,7 +2926,7 @@
                 }
                 saveCurrentLayout();
                 renderGifs();
-                setTimeout(() => { updateListUI(); }, 10);
+                refreshCardsAfterClick([...changed]);
                 return;
             }
 
@@ -2048,6 +2936,7 @@
             toggleBtn.style.background = isActive ? "var(--spice-button)" : "var(--spice-button-disabled)";
             toggleBtn.style.color = isActive ? "#000" : "var(--spice-text)";
             saveCurrentLayout();
+            requestRender();
         };
 
         leftContainer.appendChild(labelText);
@@ -2062,7 +2951,8 @@
             qtyInput.className = "adhdfy-qty-input";
 
             qtyInput.onchange = (e) => {
-                gif[qtyField] = parseInt(e.target.value) || 15;
+                gif[qtyField] = clamp(parseInt(e.target.value) || 15, 1, LAYOUT.MAX_RAIN_COUNT);
+                e.target.value = gif[qtyField];
                 saveCurrentLayout();
                 if (gif[activeField]) renderGifs();
             };
@@ -2087,6 +2977,7 @@
                     toggleBtn.style.color = "#000";
                 }
                 saveCurrentLayout();
+                requestRender();
             };
             wrapper.appendChild(colorInput);
         } else if (speedField) {
@@ -2105,6 +2996,7 @@
             slider.oninput = (e) => {
                 gif[speedField] = parseInt(e.target.value);
                 saveCurrentLayout();
+                requestRender();
             };
             rightContainer.appendChild(slider);
             wrapper.appendChild(rightContainer);
@@ -2116,30 +3008,32 @@
     function createGifCard(gif, index) {
         const item = document.createElement("div");
         item.className = "adhdfy-card";
+        item.dataset.gifId = gif.id;
 
         item.onmouseenter = () => {
-            renderedElements.filter(el => el.data === gif).forEach(element => {
-                if (element.borderBox) {
-                    element.borderBox.dataset.prevOutline = element.borderBox.style.outline;
-                    element.borderBox.style.outline = "4px solid white";
-                    element.borderBox.style.boxShadow = "0 0 15px white";
-                }
-            });
+            const element = renderedById.get(gif.id);
+            if (element && element.borderBox) {
+                element.borderBox.dataset.prevOutline = element.borderBox.style.outline;
+                element.borderBox.style.outline = "4px solid white";
+                element.borderBox.style.boxShadow = "0 0 15px white";
+            }
         };
 
         item.onmouseleave = () => {
-            renderedElements.filter(el => el.data === gif).forEach(element => {
-                if (element.borderBox) {
-                    element.borderBox.style.outline = element.borderBox.dataset.prevOutline || "none";
-                    element.borderBox.style.boxShadow = "none";
-                }
-            });
+            const element = renderedById.get(gif.id);
+            if (element && element.borderBox) {
+                element.borderBox.style.outline = element.borderBox.dataset.prevOutline || "none";
+                element.borderBox.style.boxShadow = "none";
+            }
         };
 
         const topRow = document.createElement("div");
         topRow.className = "adhdfy-card-top";
 
-        const previewImg = createMediaElement(gif.url);
+        const previewImg = document.createElement("img");
+        previewImg.loading = "lazy";
+        previewImg.decoding = "async";
+        setMediaSrc(previewImg, gif.url);
         previewImg.className = "adhdfy-preview-img";
         previewImg.style.transform = getTransformString(gif.flipped, gif.rotation);
         if (gif.crop && (gif.crop.t > 0 || gif.crop.r > 0 || gif.crop.b > 0 || gif.crop.l > 0)) {
@@ -2150,7 +3044,7 @@
         previewContainer.className = "adhdfy-card-preview";
         previewContainer.appendChild(previewImg);
 
-        const type = getMediaType(gif.url);
+        const type = getMediaType(gif.url, gif.mime);
         const textInfo = document.createElement("div");
         textInfo.className = "adhdfy-card-type";
         textInfo.innerText = `${type} #${index + 1}`;
@@ -2166,7 +3060,8 @@
             gif.visible = !gif.visible;
             saveCurrentLayout();
             visBtn.innerText = gif.visible ? "Hide" : "Show";
-            updateListUI();
+            updateToggleAllLabel();
+            renderGifs();
         };
 
         const cropBtn = createButton("Crop", "primary");
@@ -2175,8 +3070,8 @@
             e.stopPropagation();
             openCropperOverlay(gif, () => {
                 saveCurrentLayout();
-                renderGifs();
-                updateListUI();
+                refreshCards([gif]);
+                requestRender();
             });
         };
 
@@ -2186,11 +3081,8 @@
             event.stopPropagation();
             gif.flipped = !gif.flipped;
             saveCurrentLayout();
-
-            renderedElements.filter(el => el.data === gif).forEach(element => {
-                element.img.style.transform = getTransformString(gif.flipped, gif.rotation);
-            });
             previewImg.style.transform = getTransformString(gif.flipped, gif.rotation);
+            requestRender();
         };
 
         const duplicateBtn = createButton("Duplicate", "primary");
@@ -2198,16 +3090,22 @@
             event.preventDefault();
             event.stopPropagation();
 
-            const clonedGif = { ...gif };
-            clonedGif.id = Math.random().toString(36).substring(2, 10);
-            clonedGif.xPct = Math.min(0.95, clonedGif.xPct + 0.05);
-            clonedGif.yPct = Math.min(0.95, clonedGif.yPct + 0.05);
+            const clonedGif = JSON.parse(JSON.stringify(gif));
+            clonedGif.id = newId();
+            const original = renderedById.get(gif.id);
+            if (original && original.w && original.wrapper.style.display !== "none") {
+                const offset = LAYOUT.DUPLICATE_OFFSET;
+                placeGifAt(clonedGif, original.x + original.w / 2 + offset, original.y + original.h / 2 + offset);
+            } else if (isValidPos(clonedGif.pos)) {
+                clonedGif.pos.dx += LAYOUT.DUPLICATE_OFFSET;
+                clonedGif.pos.dy += LAYOUT.DUPLICATE_OFFSET;
+            }
 
             savedGifs.splice(index + 1, 0, clonedGif);
             saveCurrentLayout();
 
             renderGifs();
-            setTimeout(() => { updateListUI(); }, 10);
+            updateListAfterClick();
         };
 
         const resetBtn = createButton("Reset", "primary");
@@ -2215,19 +3113,19 @@
             e.preventDefault();
             e.stopPropagation();
 
-            const el = renderedElements.find(i => i.data === gif);
-            if (el && el.img) {
+            const el = renderedById.get(gif.id);
+            if (el) {
                 el.currentSpin = 0;
                 el.currentHueOffset = 0;
                 el.flipPhase = 0;
             }
 
-            const { url, xPct, yPct, anchor, id } = gif;
-            Object.assign(gif, GIF_DEFAULTS, { url, xPct, yPct, anchor, id, size: 50, crop: { ...GIF_DEFAULTS.crop } });
+            const { url, xPct, yPct, anchor, id, pos, mime } = gif;
+            Object.assign(gif, GIF_DEFAULTS, { url, xPct, yPct, anchor, id, pos, mime, size: 50, crop: { ...GIF_DEFAULTS.crop } });
             saveCurrentLayout();
 
             renderGifs();
-            setTimeout(() => { updateListUI(); }, 10);
+            refreshCardsAfterClick([gif]);
         };
 
         const deleteBtn = createButton("Delete", "danger");
@@ -2238,8 +3136,8 @@
             savedGifs.splice(index, 1);
             saveCurrentLayout();
             renderGifs();
-
-            setTimeout(() => { updateListUI(); }, 10);
+            updateListAfterClick();
+            scheduleMediaCleanup();
         };
 
         const effectsBtn = createButton("Effects", "effects");
@@ -2256,20 +3154,16 @@
             (val) => {
                 gif.size = parseInt(val);
                 saveCurrentLayout();
-                renderedElements.filter(el => el.data === gif).forEach(el => {
-                    if (el.realImg) el.realImg.style.width = `${val}px`;
-                    else el.img.style.width = `${val}px`;
-                });
+                requestRender();
             }
         );
 
         const currentOpacityPercent = Math.round(gif.opacity * 100);
         const opacitySlider = createSlider("Opacity", 10, 100, 1, currentOpacityPercent, "%",
             (val) => {
-                const decimalVal = parseFloat(val) / 100;
-                gif.opacity = decimalVal;
+                gif.opacity = parseFloat(val) / 100;
                 saveCurrentLayout();
-                renderedElements.filter(el => el.data === gif).forEach(el => el.img.style.opacity = decimalVal);
+                requestRender();
             }
         );
 
@@ -2277,10 +3171,8 @@
             (val) => {
                 gif.rotation = parseInt(val);
                 saveCurrentLayout();
-                renderedElements.filter(el => el.data === gif).forEach(el => {
-                    el.img.style.transform = getTransformString(gif.flipped, gif.rotation);
-                });
                 previewImg.style.transform = getTransformString(gif.flipped, gif.rotation);
+                requestRender();
             }
         );
 
@@ -2315,6 +3207,31 @@
         return item;
     }
 
+    function updateToggleAllLabel() {
+        const anyVisible = savedGifs.some(g => g.visible);
+        toggleAllBtn.innerText = anyVisible ? "Hide All" : "Show All";
+    }
+
+    const LIST_REBUILD_DELAY_MS = 10;
+
+    function updateListAfterClick() {
+        setTimeout(updateListUI, LIST_REBUILD_DELAY_MS);
+    }
+
+    function refreshCardsAfterClick(gifs) {
+        setTimeout(() => refreshCards(gifs), LIST_REBUILD_DELAY_MS);
+    }
+
+    function refreshCards(gifs) {
+        if (!listContainer) return;
+        gifs.forEach(gif => {
+            const index = savedGifs.indexOf(gif);
+            const card = listContainer.querySelector(`[data-gif-id="${CSS.escape(gif.id)}"]`);
+            if (index === -1 || !card) return;
+            card.replaceWith(createGifCard(gif, index));
+        });
+    }
+
     function updateListUI() {
         listContainer.innerHTML = "";
 
@@ -2327,15 +3244,14 @@
 
         toggleAllBtn.style.display = "block";
         deleteAllBtn.style.display = "block";
-        const anyVisible = savedGifs.some(g => g.visible);
-        toggleAllBtn.innerText = anyVisible ? "Hide All" : "Show All";
+        updateToggleAllLabel();
 
+        const fragment = document.createDocumentFragment();
         savedGifs.forEach((gif, index) => {
-            listContainer.appendChild(createGifCard(gif, index));
+            fragment.appendChild(createGifCard(gif, index));
         });
+        listContainer.appendChild(fragment);
     }
-
-    // Modal Lifecycle
 
     function toggleInfo() {
         const isInfoVisible = infoContent.style.display === "flex";
@@ -2392,26 +3308,61 @@
         return key;
     }
     const GIF_SEARCH_LIMIT = 24;
+
+    async function fetchGiphy(query, offset) {
+        for (let attempt = 0; attempt < GIPHY_API_KEYS.length; attempt++) {
+            const url = `https://api.giphy.com/v1/gifs/search?api_key=${getNextGiphyKey()}&q=${encodeURIComponent(query)}&limit=${GIF_SEARCH_LIMIT}&offset=${offset}&rating=pg-13`;
+            const res = await fetch(url);
+            if (res.ok) return res.json();
+            if (![401, 403, 429].includes(res.status)) throw new Error(`GIPHY responded with ${res.status}`);
+        }
+        const err = new Error("All GIPHY keys were rejected");
+        err.giphyUnavailable = true;
+        throw err;
+    }
     let gifSearchOffset = 0;
     let gifSearchTotalCount = 0;
     let currentGifSearchQuery = "";
+
+    function findModalCloseButton(modal) {
+        const known = modal.querySelector(".main-trackCreditsModal-closeBtn");
+        if (known) return known;
+        const title = modal.querySelector("h1");
+        const headerButtons = title && title.parentElement ? [...title.parentElement.querySelectorAll("button")] : [];
+        const inHeader = headerButtons.filter(btn => btn.id !== "gif-manager-info-btn").pop();
+        if (inHeader) return inHeader;
+        const closeLabel = Spicetify.Locale?.get?.("close");
+        const labels = ["Close", "Закрыть", closeLabel].filter(Boolean);
+        return modal.querySelector(labels.map(label => `button[aria-label="${CSS.escape(label)}"]`).join(", "));
+    }
+
+    function alignWithCloseButton(infoBtn, closeBtn) {
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (!infoBtn.isConnected || !closeBtn.isConnected) return;
+            infoBtn.style.top = "0px";
+            const infoRect = infoBtn.getBoundingClientRect();
+            const closeRect = closeBtn.getBoundingClientRect();
+            const offset = (closeRect.top + closeRect.height / 2) - (infoRect.top + infoRect.height / 2);
+            infoBtn.style.top = `${Math.round(offset)}px`;
+        }));
+    }
 
     function injectModalHeader() {
         const tryInject = () => {
             const modal = document.querySelector("generic-modal");
             if (!modal) return false;
-            const closeBtn = modal.querySelector('button[aria-label="Close"], button[aria-label="Закрыть"], .main-trackCreditsModal-closeBtn');
+            const closeBtn = findModalCloseButton(modal);
             if (!closeBtn) return false;
 
             if (!document.getElementById("gif-manager-info-btn")) {
                 const header = closeBtn.parentNode;
-                const titleEl = header.querySelector("h1");
+                const titleEl = header.querySelector("h1") || modal.querySelector("h1");
                 if (titleEl) {
                     titleEl.style.marginRight = "auto";
                     titleEl.style.display = "flex";
                     titleEl.style.alignItems = "baseline";
                     titleEl.style.gap = "0px";
-                    titleEl.innerHTML = '<span class="gif-manager-rainbow-text">ADHDfy</span><span id="adhdfy-version-badge" style="font-size: 12px; color: rgba(180, 180, 180, 0.6); font-weight: normal; margin-left: 6px; line-height: 1; cursor: pointer; transition: color 0.15s ease;">v. 1.0.6.1</span>';
+                    titleEl.innerHTML = `<span class="gif-manager-rainbow-text">ADHDfy</span><span id="adhdfy-version-badge" style="font-size: 12px; color: rgba(180, 180, 180, 0.6); font-weight: normal; margin-left: 6px; line-height: 1; cursor: pointer; transition: color 0.15s ease;">v. ${VERSION}</span>`;
 
                     const versionBadge = titleEl.querySelector('#adhdfy-version-badge');
                     if (versionBadge) {
@@ -2437,6 +3388,7 @@
 
                 infoBtn.onclick = toggleInfo;
                 header.insertBefore(infoBtn, closeBtn);
+                alignWithCloseButton(infoBtn, closeBtn);
             }
             return true;
         };
@@ -2455,6 +3407,7 @@
             if (!document.body.contains(mainModalContainer)) {
                 clearInterval(checkCloseInterval);
                 isEditMode = false;
+                flushSave();
                 renderGifs();
                 const oldBtn = document.getElementById("gif-manager-info-btn");
                 if (oldBtn) oldBtn.remove();
@@ -2484,10 +3437,10 @@
         const browseBtn = addForm.querySelector("#browse-file-btn");
         const fileInputHidden = addForm.querySelector("#file-input-hidden");
         const gifUrlInputRef = addForm.querySelector("#gif-url");
-        let pendingDirectUploadBase64 = null;
+        let pendingUploadFile = null;
 
         function resetBrowseBtn() {
-            pendingDirectUploadBase64 = null;
+            pendingUploadFile = null;
             if (browseBtn) {
                 browseBtn.style.background = "var(--spice-card)";
                 browseBtn.style.color = "var(--spice-text)";
@@ -2522,8 +3475,8 @@
                     return;
                 }
 
-                if (file.size > 2.5 * 1024 * 1024) {
-                    showCustomNotification("Warning: Files larger than 2.5MB might exceed limits.", true);
+                if (file.size > 25 * 1024 * 1024) {
+                    showCustomNotification("Warning: Very large files use a lot of memory while playing.", true);
                 }
 
                 browseBtn.style.background = "#1ed760";
@@ -2533,16 +3486,12 @@
 
                 if (gifUrlInputRef) gifUrlInputRef.value = "";
 
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    pendingDirectUploadBase64 = ev.target.result;
-                };
-                reader.readAsDataURL(file);
+                pendingUploadFile = file;
             };
 
             if (gifUrlInputRef) {
                 gifUrlInputRef.oninput = () => {
-                    if (pendingDirectUploadBase64) resetBrowseBtn();
+                    if (pendingUploadFile) resetBrowseBtn();
                 };
             }
         }
@@ -2571,10 +3520,7 @@
                     if (gifSearchLoadMoreBtn) gifSearchLoadMoreBtn.innerText = "Loading...";
                 }
 
-                const fetchUrl = `https://api.giphy.com/v1/gifs/search?api_key=${getNextGiphyKey()}&q=${encodeURIComponent(query)}&limit=${GIF_SEARCH_LIMIT}&offset=${gifSearchOffset}&rating=pg-13`;
-
-                fetch(fetchUrl)
-                    .then(res => res.json())
+                fetchGiphy(query, gifSearchOffset)
                     .then(data => {
                         if (!isLoadMore) {
                             gifSearchLoading.style.display = "none";
@@ -2605,7 +3551,7 @@
 
                             img.onclick = () => {
                                 if (gifUrlInputRef) gifUrlInputRef.value = item.images.original.url;
-                                if (pendingDirectUploadBase64) resetBrowseBtn();
+                                if (pendingUploadFile) resetBrowseBtn();
 
                                 gifSearchContainer.style.display = "none";
                                 searchBtn.style.background = "var(--spice-card)";
@@ -2616,11 +3562,19 @@
                         });
                     })
                     .catch(err => {
+                        const message = err && err.giphyUnavailable
+                            ? "GIPHY search is unavailable right now (API limit reached or key revoked). You can still paste a direct GIF link above."
+                            : "Failed to load GIFs. Check connection.";
                         if (isLoadMore) {
                             if (gifSearchLoadMoreBtn) gifSearchLoadMoreBtn.innerText = "Load More";
+                            showCustomNotification(message, true);
                         } else {
                             gifSearchLoading.style.display = "none";
-                            gifSearchGrid.innerHTML = "<p class='adhdfy-gif-search-error'>Failed to load GIFs. Check connection.</p>";
+                            gifSearchGrid.innerHTML = "";
+                            const errorEl = document.createElement("p");
+                            errorEl.className = "adhdfy-gif-search-error";
+                            errorEl.innerText = message;
+                            gifSearchGrid.appendChild(errorEl);
                         }
                         console.error("GifManager GIPHY API Error:", err);
                     });
@@ -2670,47 +3624,38 @@
             const addGifBtn = addForm.querySelector("#add-gif-btn");
             if (!addGifBtn) return;
 
-            addGifBtn.onclick = () => {
-                let url = addForm.querySelector("#gif-url").value;
-                if (pendingDirectUploadBase64) {
-                    url = pendingDirectUploadBase64;
-                }
+            addGifBtn.onclick = async () => {
+                let url = addForm.querySelector("#gif-url").value.trim();
+                let mime;
 
                 const sizeInput = addForm.querySelector("#gif-size");
-                const size = sizeInput && sizeInput.value ? sizeInput.value : 50;
+                const size = clamp(parseInt(sizeInput && sizeInput.value) || 50, 10, 500);
 
-                if (url) {
-                    const anchor = "[data-testid='now-playing-widget']";
-                    const anchorEl = document.querySelector(anchor);
-
-                    let startXPct = 0.5;
-                    let startYPct = 0.5;
-
-                    if (anchorEl && anchorEl.getBoundingClientRect().width > 0) {
-                        const rect = anchorEl.getBoundingClientRect();
-                        const screenCenterX = window.innerWidth / 2;
-                        const screenCenterY = window.innerHeight / 2;
-
-                        startXPct = (screenCenterX - rect.left) / rect.width;
-                        startYPct = (screenCenterY - rect.top) / rect.height;
+                const uploading = !!pendingUploadFile;
+                if (uploading) mediaOpsInFlight++;
+                try {
+                    if (uploading) {
+                        try {
+                            url = IDB_PREFIX + await storeMediaBlob(pendingUploadFile);
+                            mime = pendingUploadFile.type;
+                        } catch (err) {
+                            console.error("ADHDfy: could not store uploaded file", err);
+                            showCustomNotification("Error: Could not save the local file.", true);
+                            return;
+                        }
                     }
+                    if (!url) return;
 
-                    savedGifs.unshift({
-                        ...GIF_DEFAULTS,
-                        url,
-                        anchor,
-                        size: parseInt(size),
-                        xPct: startXPct,
-                        yPct: startYPct,
-                        x: 0,
-                        y: 0
-                    });
+                    const newGif = applyDefaults({ url, size });
+                    if (mime) newGif.mime = mime;
+                    placeGifAt(newGif, window.innerWidth / 2, window.innerHeight / 2);
+                    savedGifs.unshift(newGif);
 
                     try {
-                        saveCurrentLayout();
+                        saveCurrentLayout(true);
                     } catch (err) {
                         savedGifs.shift();
-                        showCustomNotification("Error: Storage limit exceeded! Could not add local file.", true);
+                        showCustomNotification("Error: Storage limit exceeded! Could not add the image.", true);
                         return;
                     }
 
@@ -2720,15 +3665,40 @@
                     document.getElementById("gif-url").value = "";
                     document.getElementById("gif-size").value = "";
                     resetBrowseBtn();
+                } finally {
+                    if (uploading) mediaOpsInFlight--;
                 }
             };
         }
     }
 
-    // Entry Point & Update Logic
-
-    const VERSION = "1.0.6.1";
     const CHANGELOG = `
+        <h3 style="margin-top: 0; color: var(--spice-text); text-align: center;">New in 1.0.7:</h3>
+
+        <h4 style="margin: 15px 0 5px 0; color: var(--spice-text);">Added Features:</h4>
+        <ul style="margin-top: 0; padding-left: 20px; line-height: 1.7; color: var(--spice-subtext); font-size: 14px;">
+            <li style="margin-bottom: 8px;">GIFs now attach directly to whichever panel you drop them on, so resizing the window won’t mess up your placement anymore. Old layouts will convert automatically.</li>
+            <li style="margin-bottom: 8px;">Moved local file storage from settings to Spotify’s built-in database. This gets rid of the 2.5MB upload limit while keeping your files intact inside saved layouts.</li>
+        </ul>
+
+        <h4 style="margin: 15px 0 5px 0; color: var(--spice-text);">Bug Fixes:</h4>
+        <ul style="margin-top: 0; padding-left: 20px; line-height: 1.7; color: var(--spice-subtext); font-size: 14px;">
+            <li style="margin-bottom: 8px;">Tweaked proper size and rotation randomization to Rain Fall.</li>
+            <li style="margin-bottom: 8px;">Layout imports will skip corrupted entries without failing the whole import.</li>
+            <li style="margin-bottom: 8px;">Fixed the info button alignment next to the close button on the new Spotify UI.</li>
+            <li style="margin-bottom: 8px;">Added a clear error message when GIPHY search is down.</li>
+        </ul>
+
+        <h4 style="margin: 15px 0 5px 0; color: var(--spice-text);">Performance:</h4>
+        <ul style="margin-top: 0; padding-left: 20px; line-height: 1.7; color: var(--spice-subtext); font-size: 14px;">
+            <li style="margin-bottom: 8px;">Fixed slider lag/stuttering.</li>
+            <li style="margin-bottom: 8px;">Tweaking effects or opening the menu won't force GIFs to reload anymore.</li>
+            <li style="margin-bottom: 8px;">Paused background processing when nothing is actively animating on screen.</li>
+            <li style="margin-bottom: 8px;">Rewrote Rain Fall to render on a single layer instead of spawning up to 150 separate image elements.</li>
+        </ul>
+
+        <hr style="border-color: var(--spice-button-disabled); margin: 20px 0;">
+
         <h3 style="margin-top: 0; color: var(--spice-text); text-align: center;">New in 1.0.6.1:</h3>
 
         <h4 style="margin: 15px 0 5px 0; color: var(--spice-text);">Bug Fixes:</h4>
@@ -2885,4 +3855,5 @@
     }
 
     renderGifs();
+    migrateInlineMedia().then(cleanupUnusedMedia);
 })();
