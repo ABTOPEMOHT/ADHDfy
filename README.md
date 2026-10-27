@@ -2,6 +2,10 @@
 
 the extension that turns your Spotify client into a beautifully chaotic visual playground.
 
+> ⚠️ The only official repository is github.com/ABTOPEMOHT/ADHDfy.
+> ADHDfy is a single `adhdfy.js` file. It is never distributed as a .zip or .exe.
+> If you see a copy asking you to download an archive, it is malware.
+
 ![preview](preview.gif)
 
 *just trying to listen to music in peace*  
